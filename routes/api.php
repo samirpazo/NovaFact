@@ -13,6 +13,9 @@ Route::middleware(['session.token', 'idempotency'])->group(function () {
         Route::get('configuracion/empresa', [FacturacionController::class, 'companyConfig']);
         Route::put('configuracion/empresa', [FacturacionController::class, 'updateCompanyConfig']);
         Route::post('configuracion/empresa/logo', [FacturacionController::class, 'updateCompanyLogo']);
+        Route::put('configuracion/empresa/credenciales-sol', [FacturacionController::class, 'updateSolCredentials']);
+        Route::post('configuracion/empresa/certificado', [FacturacionController::class, 'updateCertificate']);
+        Route::put('configuracion/empresa/series', [FacturacionController::class, 'updateSeries']);
         Route::get('documentos/{documentId}/ticket-80mm', [FacturacionController::class, 'ticket80mm'])
             ->whereNumber('documentId');
         Route::post('emitir-guia', [FacturacionController::class, 'emitGuia']);
