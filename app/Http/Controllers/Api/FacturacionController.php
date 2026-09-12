@@ -136,7 +136,7 @@ class FacturacionController extends Controller
 
     public function estadoEnvio(int $submissionId): JsonResponse
     {
-        $row=DB::table('McrSunatSubmission')->where('McrSunatSubmissionID',$submissionId)->first();
+        $row=DB::table('McrSunatSubmission as s')->leftJoin('McrDocument as d','d.McrDocumentID','=','s.McrDocumentID')->where('s.McrSunatSubmissionID',$submissionId)->select('s.*','d.McrDocumentType','d.McrSeriesCode','d.McrCorrelative','d.McrPdfPath','d.McrXmlPath','d.McrCdrPath')->first();
         if (!$row) return response()->json(['message'=>'Envío no encontrado'],404);
         return response()->json([
             'success'=>true,
@@ -146,6 +146,10 @@ class FacturacionController extends Controller
             'ticket'=>$row->McrTicket,
             'error'=>$row->McrError,
             'completed_at'=>$row->McrCompletedAt,
+            'document_number'=>$row->McrSeriesCode ? $row->McrSeriesCode.'-'.$row->McrCorrelative : null,
+            'pdf_url'=>$row->McrPdfPath ? url('/api/facturacion/archivo/pdf/'.basename($row->McrPdfPath)) : null,
+            'xml_url'=>$row->McrXmlPath ? url('/api/facturacion/archivo/xml/'.basename($row->McrXmlPath)) : null,
+            'cdr_url'=>$row->McrCdrPath ? url('/api/facturacion/archivo/cdr/'.basename($row->McrCdrPath)) : null,
         ]);
     }
 }
