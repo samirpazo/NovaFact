@@ -9,8 +9,6 @@ Este ejemplo muestra cómo emitir una factura electrónica para un cliente con R
 ```json
 {
   "tipoDoc": "01",
-  "serie": "F001",
-  "correlativo": "128",
   "fechaEmision": "2024-03-16T17:00:00-05:00",
   "tipoMoneda": "PEN",
   "clientTipoDoc": "6",
@@ -44,6 +42,8 @@ Este ejemplo muestra cómo emitir una factura electrónica para un cliente con R
 
 ### Descripción de campos clave
 *   **`tipoDoc`**: '01' identifica que es una Factura.
+*   **`serie`** y **`correlativo`**: opcionales. Si se omiten, el servicio selecciona la serie activa de tipo '01' y reserva el siguiente correlativo.
+*   **`Idempotency-Key`**: header recomendado para reintentos seguros; debe ser único por operación lógica.
 *   **`clientTipoDoc`**: '6' indica que el `clientNumDoc` es un RUC.
 *   **`mtoOperGravada`**: Suma de los valores de venta (sin IGV) de todos los items.
 *   **`mtoIGV`**: 18% de la operación gravada.

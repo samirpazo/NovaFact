@@ -16,9 +16,9 @@ class EmitFacturaAction
     public function execute(array $data): array
     {
         // Validar configuración antes de proceder
-        $configError = $this->validatorService->validateFacturacion();
-        if ($configError) {
-            return $configError;
+        $configResult = $this->validatorService->validateFacturacion();
+        if (!$configResult['success']) {
+            return $configResult;
         }
 
         $dto = FacturaData::fromArray($data);
@@ -48,6 +48,18 @@ class EmitFacturaAction
             $response['description'] = $result->getCdrResponse()->getDescription();
             $response['notes'] = $result->getCdrResponse()->getNotes();
         }
+
+        $pdf = $this->facturaService->getLastPdf();
+        if ($pdf) {
+            $response['pdf_path'] = $pdf['path'];
+            $pdfName = basename($pdf['path']);
+            $xmlName = str_replace('.pdf', '.xml', $pdfName);
+            $cdrName = 'R-' . str_replace('.pdf', '.zip', $pdfName);
+            $response['pdf_url'] = url('/api/facturacion/archivo/pdf/'.$pdfName);
+            $response['xml_url'] = url('/api/facturacion/archivo/xml/'.$xmlName);
+            $response['cdr_url'] = url('/api/facturacion/archivo/cdr/'.$cdrName);
+        }
+        $response['document_id'] = $this->facturaService->getLastDocumentId();
 
         return $response;
     }

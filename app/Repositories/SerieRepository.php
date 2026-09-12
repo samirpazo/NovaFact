@@ -8,8 +8,10 @@ class SerieRepository
 {
     public function getByTipo(string $tipo, string $serie): ?Serie
     {
-        return Serie::where('tipo_comprobante_id', $tipo)
-                    ->where('serie', $serie)
+        return Serie::where('McrDocumentType', $tipo)
+                    ->where('McrSeriesCode', $serie)
+                    ->where('McrIsActive', true)
+                    ->where('SecStatus', true)
                     ->first();
     }
 }

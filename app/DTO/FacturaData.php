@@ -6,8 +6,8 @@ class FacturaData
 {
     public function __construct(
         public string $tipoDoc,
-        public string $serie,
-        public string $correlativo,
+        public ?string $serie,
+        public ?string $correlativo,
         public string $fechaEmision,
         public string $tipoMoneda,
         public string $clientTipoDoc,
@@ -22,14 +22,15 @@ class FacturaData
         public array $anticipos = [],
         public float $mtoTotalAnticipos = 0.0,
         public float $sumDsctoGlobal = 0.0
+        ,public ?string $idempotencyKey = null
     ) {}
 
     public static function fromArray(array $data): self
     {
         return new self(
             tipoDoc: $data['tipoDoc'] ?? '01',
-            serie: $data['serie'],
-            correlativo: $data['correlativo'],
+            serie: $data['serie'] ?? null,
+            correlativo: $data['correlativo'] ?? null,
             fechaEmision: $data['fechaEmision'],
             tipoMoneda: $data['tipoMoneda'] ?? 'PEN',
             clientTipoDoc: $data['clientTipoDoc'],
@@ -44,6 +45,7 @@ class FacturaData
             anticipos: $data['anticipos'] ?? [],
             mtoTotalAnticipos: (float) ($data['mtoTotalAnticipos'] ?? 0.0),
             sumDsctoGlobal: (float) ($data['sumDsctoGlobal'] ?? 0.0),
+            idempotencyKey: $data['_idempotency_key'] ?? null,
         );
     }
 }

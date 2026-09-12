@@ -41,7 +41,7 @@ class GreenterService
         $this->see->setService(config('sunat.endpoints.soap'));
     }
 
-    public function send(DocumentInterface $document): BillResult
+    public function send(DocumentInterface $document): object
     {
         // Re-configurar antes de enviar por si la empresa activa cambió en el mismo request
         $this->configure();
@@ -54,6 +54,12 @@ class GreenterService
     public function getEmpresaRepository(): \App\Repositories\EmpresaRepository
     {
         return $this->empresaRepository;
+    }
+
+    public function getStatus(?string $ticket): object
+    {
+        $this->configure();
+        return $this->see->getStatus($ticket);
     }
 
     public function getXml(DocumentInterface $document): string

@@ -9,8 +9,6 @@ Ejemplo de emisión de una boleta de venta para una persona natural identificada
 ```json
 {
   "tipoDoc": "03",
-  "serie": "B001",
-  "correlativo": "52",
   "fechaEmision": "2024-03-16T17:05:00-05:00",
   "tipoMoneda": "PEN",
   "clientTipoDoc": "1",
@@ -37,6 +35,8 @@ Ejemplo de emisión de una boleta de venta para una persona natural identificada
 
 ### Descripción de campos clave
 *   **`tipoDoc`**: '03' identifica que es una Boleta.
+*   **`serie`** y **`correlativo`**: opcionales. Si se omiten, el servicio selecciona la serie activa de tipo '03' y reserva el siguiente correlativo.
+*   **`Idempotency-Key`**: header recomendado para reintentos seguros; debe ser único por operación lógica.
 *   **`clientTipoDoc`**: '1' indica que el `clientNumDoc` es un DNI.
 *   **`clientRznSocial`**: Nombres completos del cliente.
 *   **Impuestos**: El mtoTotal debe cuadrar con la suma de gravada + IGV (redondeado a 2 decimales).

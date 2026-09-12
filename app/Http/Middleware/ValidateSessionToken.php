@@ -18,12 +18,6 @@ class ValidateSessionToken
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $token = $request->bearerToken();
-
-        if (!$token || !$this->sessionTokenService->isValid($token)) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-
-        return $next($request);
+        return app(ValidateBillingToken::class)->handle($request, $next);
     }
 }

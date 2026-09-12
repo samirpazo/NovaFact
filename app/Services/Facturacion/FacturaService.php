@@ -12,33 +12,65 @@ use Greenter\Model\Sale\SaleDetail;
 use Greenter\Model\Client\Client;
 use Greenter\Model\Company\Company;
 use Greenter\Model\Response\BillResult;
+use App\Models\McrSeries;
 
 class FacturaService
 {
+    protected ?array $lastPdf = null;
+    protected ?int $lastDocumentId = null;
+
     public function __construct(
         protected GreenterService $greenterService,
         protected XmlService $xmlService,
-        protected \App\Repositories\EmpresaRepository $empresaRepository
+        protected \App\Repositories\EmpresaRepository $empresaRepository,
+        protected InvoicePdfService $invoicePdfService,
+        protected McrPersistenceService $persistenceService,
+        protected ManagedFileService $managedFileService
     ) {}
 
     public function emitir(FacturaData $data): BillResult
     {
+        $companyConfig = $this->empresaRepository->getActive();
+        $data->serie ??= McrSeries::query()->where('McrCompanyConfigID', $companyConfig->getKey())->where('McrDocumentType', $data->tipoDoc)->where('McrIsActive', true)->where('SecStatus', true)->value('McrSeriesCode');
+        $data->serie ??= $data->tipoDoc === '03' ? 'B001' : 'F001';
+        $data->correlativo ??= '1';
+        [$series, $correlative] = $this->persistenceService->reserveSeries($companyConfig, $data);
+        $data->correlativo = (string) $correlative;
         $invoice = $this->mapToInvoice($data);
         
         // Obtenemos y guardamos el XML *antes* de enviarlo a SUNAT para registro (Evita perderlo si falla la conexión)
         $xmlSigned = $this->greenterService->getXml($invoice);
-        $this->xmlService->save($xmlSigned, $invoice->getName().'.xml');
+        $xmlPath = $this->xmlService->save($xmlSigned, $invoice->getName().'.xml');
 
         $result = $this->greenterService->send($invoice);
 
         if ($result->isSuccess()) {
             $cdrZip = $result->getCdrZip();
             if ($cdrZip) {
-                $this->xmlService->saveCdr($cdrZip, 'R-'.$invoice->getName().'.zip');
+                $cdrPath = $this->xmlService->saveCdr($cdrZip, 'R-'.$invoice->getName().'.zip');
             }
+
+            $this->lastPdf = $this->invoicePdfService->generate($invoice);
+            $document = $this->persistenceService->storeAccepted(
+                $data, $companyConfig, $correlative, $result, $this->lastPdf, $invoice->getName(),
+                $this->managedFileService->register($xmlPath, $invoice->getName().'.xml', 'application/xml'),
+                isset($cdrPath) ? $this->managedFileService->register($cdrPath, 'R-'.$invoice->getName().'.zip', 'application/zip') : null,
+                $this->managedFileService->register($this->lastPdf['path'], $invoice->getName().'.pdf', 'application/pdf')
+            );
+            $this->lastDocumentId = $document->getKey();
         }
 
         return $result;
+    }
+
+    public function getLastPdf(): ?array
+    {
+        return $this->lastPdf;
+    }
+
+    public function getLastDocumentId(): ?int
+    {
+        return $this->lastDocumentId;
     }
 
     protected function mapToInvoice(FacturaData $data): Invoice

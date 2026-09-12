@@ -1,11 +1,7 @@
 <?php
-
 namespace App\Models;
-
 use Illuminate\Database\Eloquent\Model;
-
-class Serie extends Model
-{
+class McrSeries extends Model {
     protected $table = 'McrSeries';
     protected $primaryKey = 'McrSeriesID';
     public $timestamps = false;
