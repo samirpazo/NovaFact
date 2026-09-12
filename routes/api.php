@@ -10,6 +10,11 @@ Route::middleware(['session.token', 'idempotency'])->group(function () {
         Route::post('boletas/baja', [FacturacionController::class, 'baja']);
         Route::get('boletas/resumen/{ticket}', [FacturacionController::class, 'estadoResumen']);
         Route::get('submissions/{submissionId}', [FacturacionController::class, 'estadoEnvio']);
+        Route::get('configuracion/empresa', [FacturacionController::class, 'companyConfig']);
+        Route::put('configuracion/empresa', [FacturacionController::class, 'updateCompanyConfig']);
+        Route::post('configuracion/empresa/logo', [FacturacionController::class, 'updateCompanyLogo']);
+        Route::get('documentos/{documentId}/ticket-80mm', [FacturacionController::class, 'ticket80mm'])
+            ->whereNumber('documentId');
         Route::post('emitir-guia', [FacturacionController::class, 'emitGuia']);
         Route::get('historial-guia/{ticket}', [FacturacionController::class, 'consultarHistorialGuia']);
         Route::get('archivo/{tipo}/{nombre}', [FacturacionController::class, 'descargarArchivo'])
