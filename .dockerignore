@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.production.example
+storage/app/private/*
+storage/logs/*
+vendor
+node_modules
+.git
