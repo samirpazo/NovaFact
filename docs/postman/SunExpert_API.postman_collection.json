@@ -1,0 +1,166 @@
+{
+	"info": {
+		"_postman_id": "ebed5445-5654-469b-9807-6f8d07066d12",
+		"name": "SUNAT GRE REST - SunExpert",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Emitir Factura (Exonerada)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"serie\": \"F001\",\r\n    \"correlativo\": \"100\",\r\n    \"fechaEmision\": \"{{current_date}}\",\r\n    \"tipoDoc\": \"01\",\r\n    \"destinatarioTipoDoc\": \"6\",\r\n    \"destinatarioNumDoc\": \"20405544458\",\r\n    \"destinatarioRznSocial\": \"CLIENTE EXTERNO PRUEBA SAC\",\r\n    \"details\": [\r\n        {\r\n            \"codigo\": \"P001\",\r\n            \"descripcion\": \"PRODUCTO EXONERADO TEST\",\r\n            \"unidad\": \"NIU\",\r\n            \"cantidad\": 1,\r\n            \"valorUnitario\": 100,\r\n            \"precioUnitario\": 100,\r\n            \"tipoAfeIGV\": \"20\"\r\n        }\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/facturacion/emitir-factura",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"facturacion",
+						"emitir-factura"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Emitir Guía (Modalidad 02 - Privado)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"tipoDoc\": \"09\",\r\n    \"serie\": \"T001\",\r\n    \"correlativo\": \"201\",\r\n    \"fechaEmision\": \"{{current_date}}\",\r\n    \"fechaTraslado\": \"{{next_date}}\",\r\n    \"modalidadTraslado\": \"02\",\r\n    \"motivoTraslado\": \"01\",\r\n    \"pesoTotal\": \"150.00\",\r\n    \"unidadMedida\": \"KGM\",\r\n    \"destinatarioTipoDoc\": \"6\",\r\n    \"destinatarioNumDoc\": \"20405544458\",\r\n    \"destinatarioRznSocial\": \"CLIENTE PRUEBA PRIVADO SAC\",\r\n    \"direccionPartida\": \"AV. LAS PRUEBAS 123\",\r\n    \"ubigeoPartida\": \"150101\",\r\n    \"direccionLlegada\": \"AV. DESTINO FINAL 456\",\r\n    \"ubigeoLlegada\": \"150132\",\r\n    \"placaVehiculo\": \"ABC-123\",\r\n    \"choferTipoDoc\": \"1\",\r\n    \"choferNumDoc\": \"44445555\",\r\n    \"choferNombres\": \"JUAN\",\r\n    \"choferApellidos\": \"PEREZ\",\r\n    \"choferLicencia\": \"Q98765432\",\r\n    \"relatedDocs\": [\r\n        {\r\n            \"tipo\": \"01\",\r\n            \"nro\": \"F001-123\",\r\n            \"tipoDesc\": \"Factura\",\r\n            \"emisor\": \"20405544459\"\r\n        }\r\n    ],\r\n    \"details\": [\r\n        {\r\n            \"codigo\": \"P001\",\r\n            \"descripcion\": \"TRANSFORMADOR ELÉCTRICO\",\r\n            \"unidad\": \"NIU\",\r\n            \"cantidad\": 2\r\n        }\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/facturacion/emitir-guia",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"facturacion",
+						"emitir-guia"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Emitir Guía (Modalidad 01 - Público)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"tipoDoc\": \"09\",\r\n    \"serie\": \"T001\",\r\n    \"correlativo\": \"202\",\r\n    \"fechaEmision\": \"{{current_date}}\",\r\n    \"fechaTraslado\": \"{{next_date}}\",\r\n    \"modalidadTraslado\": \"01\",\r\n    \"motivoTraslado\": \"01\",\r\n    \"pesoTotal\": \"50.00\",\r\n    \"unidadMedida\": \"KGM\",\r\n    \"destinatarioTipoDoc\": \"6\",\r\n    \"destinatarioNumDoc\": \"20405544458\",\r\n    \"destinatarioRznSocial\": \"CLIENTE PRUEBA PUBLICO SAC\",\r\n    \"direccionPartida\": \"CALLE LOS CEDROS 789\",\r\n    \"ubigeoPartida\": \"150101\",\r\n    \"direccionLlegada\": \"ALMACEN CENTRAL SUN 02\",\r\n    \"ubigeoLlegada\": \"150110\",\r\n    \"transportistaTipoDoc\": \"6\",\r\n    \"transportistaNumDoc\": \"20000000002\",\r\n    \"transportistaRznSocial\": \"TRANSPORTES RAPIDO SAC\",\r\n    \"relatedDocs\": [\r\n        {\r\n            \"tipo\": \"01\",\r\n            \"nro\": \"F001-456\",\r\n            \"tipoDesc\": \"Factura\",\r\n            \"emisor\": \"20405544459\"\r\n        }\r\n    ],\r\n    \"details\": [\r\n        {\r\n            \"codigo\": \"P005\",\r\n            \"descripcion\": \"CAJA DE REPUESTOS VARIOS\",\r\n            \"unidad\": \"NIU\",\r\n            \"cantidad\": 10\r\n        }\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/facturacion/emitir-guia",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"facturacion",
+						"emitir-guia"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Consultar Historial (Ticket)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/facturacion/historial-guia/{{ticket}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"facturacion",
+						"historial-guia",
+						"{{ticket}}"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"const date = new Date();",
+					"const formatDate = (d) => d.toISOString().split('T')[0];",
+					"pm.environment.set(\"current_date\", formatDate(date));",
+					"",
+					"const tomorrow = new Date();",
+					"tomorrow.setDate(date.getDate() + 1);",
+					"pm.environment.set(\"next_date\", formatDate(tomorrow));"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://sunexpert-facture.test",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "tu_token_aqui",
+			"type": "string"
+		},
+		{
+			"key": "ticket",
+			"value": "20240000000000000123",
+			"type": "string"
+		}
+	]
+}
