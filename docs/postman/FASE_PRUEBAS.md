@@ -22,4 +22,4 @@
 - Reintento: detener temporalmente el worker, emitir, volver a levantarlo y verificar `McrAttemptNumber`.
 - Descarga segura: probar `/archivo/pdf`, `/archivo/xml` y `/archivo/cdr` con token; sin token debe responder 401.
 
-La colección `SunExpert_API.postman_collection.json` contiene los endpoints base. Estos escenarios pueden ejecutarse con Runner o Newman.
+La colección `SunExpert_API.postman_collection.json` (colección Nova Facturación) contiene los endpoints base. Estos escenarios pueden ejecutarse con Runner o Newman.

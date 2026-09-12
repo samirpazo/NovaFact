@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "ebed5445-5654-469b-9807-6f8d07066d12",
-		"name": "SUNAT GRE REST - SunExpert",
+		"name": "Nova Facturación - API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -149,7 +149,7 @@
 	"variable": [
 		{
 			"key": "base_url",
-			"value": "http://sunexpert-facture.test",
+			"value": "http://127.0.0.1:8081",
 			"type": "string"
 		},
 		{

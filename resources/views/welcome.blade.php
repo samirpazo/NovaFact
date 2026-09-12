@@ -3,15 +3,15 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ config('app.name', 'SunExpert Facture') }} - Facturación Electrónica</title>
+        <title>{{ config('app.name', 'Nova Facturación') }} - Facturación Electrónica</title>
 
         <!-- Assets Locales (Vite) -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         <style>
             :root {
-                --primary: #F8B803;
-                --primary-hover: #e5a902;
+                --primary: #002aff;
+                --primary-hover: #001dcc;
                 --dark-bg: #0F1115;
                 --dark-card: #1A1D23;
                 --light-bg: #F8F9FA;
@@ -59,6 +59,17 @@
                 border: 1px solid rgba(255, 255, 255, 0.1);
             }
 
+            .code-brace { color: #3454d1; font-weight: 700; }
+            .code-path { color: #2847c7; }
+            .code-key { color: #087443; }
+            .code-value { color: #9a5200; }
+            .code-comment { color: #667085; }
+            .dark .code-brace { color: #9db0ff; }
+            .dark .code-path { color: #dbe2ff; }
+            .dark .code-key { color: #98c379; }
+            .dark .code-value { color: #d19a66; }
+            .dark .code-comment { color: #8b93a7; }
+
             /* Animations */
             @keyframes fadeInUp {
                 from { opacity: 0; transform: translateY(30px); }
@@ -80,14 +91,14 @@
                 right: -10%;
                 width: 50vw;
                 height: 50vw;
-                background: radial-gradient(circle, rgba(248, 184, 3, 0.15) 0%, rgba(248, 184, 3, 0) 70%);
+                background: radial-gradient(circle, rgba(0, 42, 255, 0.15) 0%, rgba(0, 42, 255, 0) 70%);
                 z-index: -1;
             }
 
             /* Buttons */
             .btn-primary {
                 background-color: var(--primary);
-                color: #000;
+                color: #fff;
                 padding: 12px 28px;
                 border-radius: 12px;
                 font-weight: 600;
@@ -96,13 +107,13 @@
                 align-items: center;
                 gap: 8px;
                 transition: var(--transition);
-                box-shadow: 0 4px 14px 0 rgba(248, 184, 3, 0.3);
+                box-shadow: 0 4px 14px 0 rgba(0, 42, 255, 0.3);
             }
 
             .btn-primary:hover {
                 background-color: var(--primary-hover);
                 transform: translateY(-2px);
-                box-shadow: 0 6px 20px 0 rgba(248, 184, 3, 0.4);
+                box-shadow: 0 6px 20px 0 rgba(0, 42, 255, 0.4);
             }
 
             .btn-outline {
@@ -117,13 +128,13 @@
 
             .btn-outline:hover {
                 background-color: var(--primary);
-                color: #000;
+                color: #fff;
             }
 
             /* Shapes */
             .floating-shape {
                 position: absolute;
-                background: linear-gradient(45deg, var(--primary), #FFD700);
+                background: linear-gradient(45deg, var(--primary), #4d73ff);
                 opacity: 0.1;
                 filter: blur(40px);
                 border-radius: 50%;
@@ -233,7 +244,7 @@
                 display: inline-flex;
                 align-items: center;
                 gap: 6px;
-                background: rgba(248, 184, 3, 0.1);
+                background: rgba(0, 42, 255, 0.14);
                 color: var(--primary);
                 padding: 4px 12px;
                 border-radius: 100px;
@@ -305,11 +316,11 @@
                     <path d="M12 28V12H28V16H16V28H12Z" fill="white"/>
                     <path d="M20 28V20H28V28H20Z" fill="white" opacity="0.6"/>
                 </svg>
-                SunExpert <span>Facture</span>
+                Nova <span>Facturación</span>
             </a>
 
             <div class="nav-links">
-                <a href="https://github.com/sunexpert/docs" class="nav-link">Documentación</a>
+                <a href="/docs" class="nav-link">Documentación</a>
                 <a href="#" class="nav-link">Soporte</a>
                 
                 @if (Route::has('login'))
@@ -341,17 +352,17 @@
             <section class="hero">
                 <div class="hero-content animate-fade-up">
                     <div class="badge">
-                        <span class="flex h-2 w-2 rounded-full bg-yellow-500 animate-pulse"></span>
+                        <span class="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
                         UBL v2.1 disponible ahora
                     </div>
                     <h1>
-                        <span class="text-primary">SunExpert</span> 
+                        <span class="text-primary">Nova</span> 
                         <br>
                         Emisión de Comprobantes</h1>
                     <p>La infraestructura API más robusta para facturación electrónica y guías de remisión en Perú. Integración sencilla, validación instantánea y alta disponibilidad.</p>
                     
                     <!-- <div class="hero-actions">
-                        <a href="https://github.com/sunexpert/docs" class="btn-primary">
+                        <a href="/docs" class="btn-primary">
                             Explorar la API
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                         </a>
@@ -368,17 +379,17 @@
                             <div style="width: 12px; height: 12px; border-radius: 50%; background: #27c93f;"></div>
                         </div>
                         <code style="font-family: 'Courier New', monospace; font-size: 14px; color: var(--primary);">
-                            <span style="color: #c678dd;">POST</span> /api/v1/factura<br>
-                            {<br>
-                            &nbsp;&nbsp;<span style="color: #98c379;">"serie"</span>: <span style="color: #d19a66;">"F001"</span>,<br>
-                            &nbsp;&nbsp;<span style="color: #98c379;">"correlativo"</span>: <span style="color: #d19a66;">"102"</span>,<br>
-                            &nbsp;&nbsp;<span style="color: #98c379;">"cliente"</span>: { ... }<br>
-                            }<br><br>
-                            <span style="color: #5c6370;">// Response</span><br>
-                            {<br>
-                            &nbsp;&nbsp;<span style="color: #98c379;">"success"</span>: <span style="color: #d19a66;">true</span>,<br>
-                            &nbsp;&nbsp;<span style="color: #98c379;">"message"</span>: <span style="color: #d19a66;">"ACEPTADA"</span><br>
-                            }
+                            <span style="color: #3454d1; font-weight: 700;">POST</span> <span class="code-path">/api/facturacion/emitir-factura</span><br>
+                            <span class="code-brace">{</span><br>
+                            &nbsp;&nbsp;<span class="code-key">"serie"</span>: <span class="code-value">"F001"</span>,<br>
+                            &nbsp;&nbsp;<span class="code-key">"correlativo"</span>: <span class="code-value">"102"</span>,<br>
+                            &nbsp;&nbsp;<span class="code-key">"cliente"</span>: <span class="code-brace">{ ... }</span><br>
+                            <span class="code-brace">}</span><br><br>
+                            <span class="code-comment">// Response</span><br>
+                            <span class="code-brace">{</span><br>
+                            &nbsp;&nbsp;<span class="code-key">"success"</span>: <span class="code-value">true</span>,<br>
+                            &nbsp;&nbsp;<span class="code-key">"message"</span>: <span class="code-value">"ACEPTADA"</span><br>
+                            <span class="code-brace">}</span>
                         </code>
                     </div>
                 </div>
@@ -413,7 +424,7 @@
         </main>
 
         <footer>
-            &copy; {{ date('Y') }} SunExpert Facture System. Todos los derechos reservados.<br>
+            &copy; {{ date('Y') }} Nova Facturación Electrónica. Todos los derechos reservados.<br>
             Desarrollado para la excelencia operativa en facturación electrónica.
         </footer>
     </body>
