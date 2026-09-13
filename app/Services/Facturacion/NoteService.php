@@ -7,6 +7,7 @@ use App\Models\Empresa;
 use App\Models\McrDocument;
 use App\Services\Documents\ProcessingResult;
 use App\Services\Sunat\GreenterService;
+use App\Support\DecimalAmount;
 use Greenter\Model\Client\Client;
 use Greenter\Model\Company\Address;
 use Greenter\Model\Company\Company;
@@ -25,16 +26,17 @@ class NoteService
         private ManagedFileService $files,
     ) {}
 
-    public function emitPersisted(McrDocument $document, FacturaData $data, array $reference): BillResult
+    public function emitPersisted(McrDocument $document, array $payload): BillResult
     {
         $company = Empresa::findOrFail($document->McrCompanyConfigID);
         if (! $company->McrIsActive || ! $company->SecStatus
             || $company->McrEnvironment !== (config('sunat.production') ? 'production' : 'beta')) {
             throw new \RuntimeException('Document company is not active in this worker environment.');
         }
+        $data = FacturaData::fromArray($payload);
         $data->serie = $document->McrSeriesCode;
         $data->correlativo = (string) $document->McrCorrelative;
-        $note = $this->map($data, $reference, $company);
+        $note = $this->map($data, $payload['reference'], $company, DecimalAmount::add($payload['mtoOperGravada'], $payload['mtoIGV']), $payload['mtoTotal']);
         $disk = Storage::disk('local');
         $name = $document->getKey().'-'.$note->getName();
         $xmlPath = 'facturacion/xml/'.$name.'.xml';
@@ -73,7 +75,7 @@ class NoteService
         return $result;
     }
 
-    public function map(FacturaData $data, array $reference, Empresa $companyConfig): Note
+    public function map(FacturaData $data, array $reference, Empresa $companyConfig, string $subTotal, string|int $totalText): Note
     {
         $client = (new Client)->setTipoDoc($data->clientTipoDoc)->setNumDoc($data->clientNumDoc)->setRznSocial($data->clientRznSocial);
         $company = (new Company)->setRuc($companyConfig->CpyRuc)->setRazonSocial($companyConfig->CpyBusinessName)
@@ -88,14 +90,14 @@ class NoteService
             ->setTipDocAfectado($reference['document_type'])->setNumDocfectado($reference['series'].'-'.$reference['correlative'])
             ->setCodMotivo($reference['reason_code'])->setDesMotivo($reference['reason'])
             ->setMtoOperGravadas($data->mtoOperGravada)->setMtoIGV($data->mtoIGV)->setTotalImpuestos($data->mtoIGV)
-            ->setValorVenta($data->mtoOperGravada)->setSubTotal($data->mtoOperGravada + $data->mtoIGV)->setMtoImpVenta($data->mtoTotal);
+            ->setValorVenta($data->mtoOperGravada)->setSubTotal((float) $subTotal)->setMtoImpVenta($data->mtoTotal);
         $details = array_map(fn (array $item): SaleDetail => (new SaleDetail)
             ->setCodProducto($item['codigo'] ?? 'P001')->setUnidad($item['unidad'] ?? 'NIU')->setCantidad($item['cantidad'])
             ->setDescripcion($item['descripcion'])->setMtoBaseIgv($item['mtoBaseIgv'])->setPorcentajeIgv($rate)
             ->setIgv($item['igv'])->setTotalImpuestos($item['igv'])->setTipAfeIgv('10')
             ->setMtoValorVenta($item['mtoValorVenta'])->setMtoValorUnitario($item['mtoValorUnitario'])
             ->setMtoPrecioUnitario($item['mtoPrecioUnitario']), $data->items);
-        $note->setDetails($details)->setLegends([(new Legend)->setCode('1000')->setValue('SON '.number_format($data->mtoTotal, 2, '.', '').' SOLES')]);
+        $note->setDetails($details)->setLegends([(new Legend)->setCode('1000')->setValue('SON '.$totalText.' SOLES')]);
 
         return $note;
     }

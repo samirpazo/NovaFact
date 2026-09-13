@@ -37,9 +37,19 @@ Cada nota modifica un solo comprobante. La familia de la serie de la nota debe c
 
 Reglas SUNAT implementadas: motivo perteneciente al catálogo del tipo de nota, una sola referencia, documento afectado 01/03 y familia F/B coherente. Los códigos de crédito 08, 11, 12 y 13 están catalogados pero se rechazan explícitamente con 422: bonificación necesita afectación no onerosa; exportación e IVAP necesitan categorías tributarias que este contrato aún no representa; y código 13 necesita cuotas/condiciones de pago. No se acepta silenciosamente un XML tributariamente incompleto.
 
-Invariantes internas: ownership estricto, estado fiscal aceptado, coincidencia de moneda/adquirente, total de nota de crédito no mayor al original y total idéntico para motivos 01, 02, 03 y 06. Los importes comparados con el original se convierten a centavos enteros. La validación HTTP conserva la comprobación de sumas de base e IGV ya usada por 01/03.
+Invariantes internas: ownership estricto, estado fiscal aceptado, coincidencia de moneda/adquirente, total individual de nota de crédito no mayor al original y total idéntico para motivos 01, 02, 03 y 06. Tampoco se permiten notas encadenadas; este alcance admite únicamente origen 01/03.
 
-Política del microservicio: se permiten varias notas legítimas sobre un origen y no se bloquea la fila origen, pues en esta fase no existe un acumulado fiscal autorizado que deba serializarse. Cada nota mantiene su propia identidad, serie y FK. No se implementa un límite acumulado entre notas parciales: hacerlo correctamente requiere considerar notas aceptadas, rechazadas y anulaciones posteriores. Tampoco se permiten notas encadenadas; este alcance admite únicamente origen 01/03.
+La normativa revisada exige identificar el comprobante afectado y el mismo adquirente, y describe los motivos de modificación, pero no se encontró una regla SUNAT que defina cómo calcular o reservar un saldo acumulado entre varias notas de crédito. Por ello se distinguen tres niveles: SUNAT valida la nota y su referencia; el microservicio protege la coherencia de los documentos que conoce; y reglas comerciales más restrictivas, como autorizaciones o límites por contrato, pertenecen al consumidor.
+
+Para referencias internas, el microservicio aplica además el invariante conservador `suma de notas reductoras vigentes + nota solicitada <= total original`. Son reductores los motivos soportados distintos de 03; la corrección de descripción no consume saldo. Se incluyen estados `created`, `queued`, `processing`, `retry_pending`, `accepted` y `accepted_with_observations`; se excluyen `rejected` y `failed`. La admisión bloquea únicamente la fila del documento 01/03 con `SELECT ... FOR UPDATE`, calcula el acumulado dentro de la misma transacción y luego persiste la nota. Así, dos solicitudes concurrentes no pueden aprobar basándose en el mismo saldo. La identidad idempotente se intenta primero, de modo que un replay no reserva saldo dos veces.
+
+Para referencias externas el microservicio no tiene la historia completa y no puede demostrar un acumulado. Valida estructura, moneda, adquirente, familia de serie y límite individual, pero el consumidor debe controlar el saldo agregado y SUNAT conserva la decisión fiscal definitiva. No se crea un documento ficticio ni se presenta esa comprobación parcial como garantía acumulada.
+
+## Exactitud monetaria
+
+La admisión de 07/08 usa `DecimalAmount`: analiza cadenas decimales o enteros y opera en unidades menores enteras. Los totales, bases e IGV admiten como máximo dos decimales; cantidad, valor unitario y precio unitario admiten hasta seis. Se rechazan `float`, notación científica, coma decimal, espacios, negativos, ceros iniciales ambiguos y precisión excedente. En JSON, un valor decimal debe enviarse como cadena; un entero puede enviarse como número.
+
+No existe redondeo silencioso al admitir importes. La suma de base, IGV y total se compara en centavos. El IGV esperado se calcula con tasa de cuatro decimales y redondeo comercial *half up* a centavos. Los valores de hasta seis decimales se conservan para Greenter y sólo se convierten a `float` en la frontera que exige su API; ninguna decisión de integridad usa esa conversión. PostgreSQL `numeric` y el snapshot canónico reciben las cadenas normalizadas.
 
 ## Contrato
 
@@ -61,19 +71,19 @@ Referencia interna:
   "clientTipoDoc": "6",
   "clientNumDoc": "20123456789",
   "clientRznSocial": "Cliente SAC",
-  "mtoOperGravada": 100,
-  "mtoIGV": 18,
-  "mtoTotal": 118,
+  "mtoOperGravada": "100.00",
+  "mtoIGV": "18.00",
+  "mtoTotal": "118.00",
   "items": [{
     "codigo": "P001",
     "descripcion": "Ajuste comercial",
     "unidad": "NIU",
-    "cantidad": 1,
-    "mtoBaseIgv": 100,
-    "igv": 18,
-    "mtoValorUnitario": 100,
-    "mtoValorVenta": 100,
-    "mtoPrecioUnitario": 118
+    "cantidad": "1.000000",
+    "mtoBaseIgv": "100.00",
+    "igv": "18.00",
+    "mtoValorUnitario": "100.000000",
+    "mtoValorVenta": "100.00",
+    "mtoPrecioUnitario": "118.000000"
   }]
 }
 ```
@@ -113,10 +123,10 @@ El CDR ZIP, código, descripción, observaciones y respuesta normalizada usan `B
 
 ## Evidencia y límites
 
-La suite funcional cubre 07/08 sobre factura y boleta internas, referencia externa, motivos inválidos, empresa incorrecta, origen inexistente/rechazado, serie incompatible, XML, PDF, aceptación/rechazo SUNAT simulados, CDR, idempotencia y `external_reference`. PostgreSQL cubre carreras de 20 solicitudes por key, 20 por referencia externa, 50 numeraciones por serie para cada tipo, dos notas legítimas concurrentes sobre un origen y migración `up → down → up` multiempresa con FK `RESTRICT`.
+La suite funcional cubre 07/08 sobre factura y boleta internas, referencia externa, motivos inválidos, empresa incorrecta, origen inexistente/rechazado, serie incompatible, XML, PDF, aceptación/rechazo SUNAT simulados, CDR, idempotencia, `external_reference`, valores como `0.01`, `0.10`, `10.10`, `1000.00`, `999999999.99`, precisión inválida, saldo un centavo por debajo, saldo exacto y exceso de un centavo. PostgreSQL cubre carreras de 20 solicitudes por key, 20 por referencia externa, 50 numeraciones por serie para cada tipo, dos notas concurrentes que disputarían el mismo saldo y migración `up → down → up` multiempresa con FK `RESTRICT`.
 
-- Suite rápida: 58 pruebas aprobadas, 275 aserciones, 15 casos PostgreSQL omitidos explícitamente y una deprecación preexistente.
-- Suite PostgreSQL real: 73 pruebas aprobadas, 397 aserciones y una deprecación preexistente.
+- Suite rápida: 74 pruebas aprobadas, 296 aserciones, 16 casos PostgreSQL omitidos explícitamente y una deprecación preexistente.
+- Suite PostgreSQL real: 90 pruebas aprobadas, 422 aserciones y una deprecación preexistente.
 - La migración de referencias superó `up → down → up`, preservó referencias históricas de dos empresas sin inventar FK y verificó `ON DELETE RESTRICT` con una nota distinta del documento origen.
 
 No se llamó a SUNAT, no se aplicaron migraciones remotas y no se implementaron GRE, retries avanzados, polling, outbox, webhooks, retenciones ni percepciones.
@@ -127,4 +137,6 @@ Fuentes normativas y técnicas consultadas:
 - SUNAT, contenido de Nota de Crédito y regla del código 13: https://www.sunat.gob.pe/legislacion/superin/2021/anexo-165-2021.pdf
 - SUNAT, notas sobre comprobantes no emitidos en el mismo sistema: https://orientacion.sunat.gob.pe/01-notas-electronicas-emitidas-respecto-de-comprobantes-de-pago-no-emitidos-en-el-sistema
 - SUNAT, catálogo 10: https://www.sunat.gob.pe/legislacion/superin/2017/anexosV-318-2017.pdf
+- SUNAT, Reglamento de Comprobantes de Pago, notas vinculadas al comprobante y adquirente: https://www.sunat.gob.pe/legislacion/comprob/regla/capituloIII.pdf
+- SUNAT, descripción operativa de nota de crédito: https://cpe.sunat.gob.pe/tipos_de_comprobantes/nota_de_credito
 - Greenter 5.3.0 y ejemplo oficial de `Note`: https://github.com/thegreenter/greenter y https://github.com/thegreenter/demo/blob/master/examples/nota-debito.php

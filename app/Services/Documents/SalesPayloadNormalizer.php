@@ -3,14 +3,17 @@
 namespace App\Services\Documents;
 
 use App\DTO\FacturaData;
+use App\Enums\DocumentType;
+use App\Support\DecimalAmount;
 use Carbon\CarbonImmutable;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 final class SalesPayloadNormalizer
 {
     /**
      * Canonical request before platform numbering. Missing nullable fields and
-     * explicit null are equivalent. Decimal fields become JSON numbers; object
-     * keys are sorted by PayloadCodec and array order remains significant.
+     * explicit null are equivalent. Note decimals become fixed-scale strings;
+     * object keys are sorted by PayloadCodec and array order remains significant.
      */
     public function request(array $payload): array
     {
@@ -63,6 +66,26 @@ final class SalesPayloadNormalizer
             'reference' => isset($payload['reference']) && is_array($payload['reference'])
                 ? $this->normalizeReference($payload['reference']) : null,
         ];
+
+        if (DocumentType::tryFrom($data->tipoDoc)?->isNote()) {
+            try {
+                foreach (['mtoOperGravada', 'mtoIGV', 'mtoTotal'] as $field) {
+                    $normalized[$field] = DecimalAmount::normalize($payload[$field], 2);
+                }
+                foreach ($normalized['items'] as $index => &$item) {
+                    $source = $payload['items'][$index];
+                    foreach (['mtoBaseIgv', 'igv', 'mtoValorVenta'] as $field) {
+                        $item[$field] = DecimalAmount::normalize($source[$field], 2);
+                    }
+                    foreach (['cantidad', 'mtoValorUnitario', 'mtoPrecioUnitario'] as $field) {
+                        $item[$field] = DecimalAmount::normalize($source[$field], 6);
+                    }
+                }
+                unset($item);
+            } catch (\InvalidArgumentException $exception) {
+                throw new UnprocessableEntityHttpException('Note monetary totals require exact non-negative decimals with at most two places; quantities and unit prices allow six.');
+            }
+        }
 
         return array_filter($normalized, static fn (mixed $value): bool => $value !== null);
     }

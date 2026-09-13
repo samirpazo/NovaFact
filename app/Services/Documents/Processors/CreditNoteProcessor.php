@@ -2,7 +2,6 @@
 
 namespace App\Services\Documents\Processors;
 
-use App\DTO\FacturaData;
 use App\Models\McrDocument;
 use App\Services\Documents\ElectronicDocumentProcessor;
 use App\Services\Documents\ProcessingResult;
@@ -14,6 +13,6 @@ class CreditNoteProcessor implements ElectronicDocumentProcessor
 
     public function process(McrDocument $document, array $payload): ProcessingResult
     {
-        return ProcessingResult::fromBillResult($this->service->emitPersisted($document, FacturaData::fromArray($payload), $payload['reference']));
+        return ProcessingResult::fromBillResult($this->service->emitPersisted($document, $payload));
     }
 }

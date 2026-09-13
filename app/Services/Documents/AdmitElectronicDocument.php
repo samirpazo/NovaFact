@@ -4,11 +4,13 @@ namespace App\Services\Documents;
 
 use App\DTO\FacturaData;
 use App\Enums\DocumentState;
+use App\Enums\DocumentType;
 use App\Jobs\ProcessElectronicDocumentJob;
 use App\Models\Empresa;
 use App\Models\McrApiClient;
 use App\Models\McrDocument;
 use App\Models\McrSeries;
+use App\Support\DecimalAmount;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -45,6 +47,8 @@ class AdmitElectronicDocument
                     'McrUpdatedAt' => now(),
                 ], 'McrIdempotencyID');
 
+                $this->noteReferences->validateAccumulatedCredit($canonicalRequest);
+
                 $series = McrSeries::whereKey($series->getKey())->lockForUpdate()->firstOrFail();
                 if (! $series->McrIsActive || ! $series->SecStatus) {
                     throw new UnprocessableEntityHttpException('The configured series is inactive.');
@@ -75,9 +79,9 @@ class AdmitElectronicDocument
                     'McrCustomerDocumentType' => $data->clientTipoDoc,
                     'McrCustomerDocumentNumber' => $data->clientNumDoc,
                     'McrCustomerName' => $data->clientRznSocial,
-                    'McrTaxableAmount' => $data->mtoOperGravada,
-                    'McrTaxAmount' => $data->mtoIGV,
-                    'McrTotalAmount' => $data->mtoTotal,
+                    'McrTaxableAmount' => $processingPayload['mtoOperGravada'],
+                    'McrTaxAmount' => $processingPayload['mtoIGV'],
+                    'McrTotalAmount' => $processingPayload['mtoTotal'],
                     'McrStatus' => DocumentState::Created->value,
                     'McrIdempotencyKey' => $context->idempotencyKey,
                     'McrPayloadHash' => $payloadHash,
@@ -85,7 +89,7 @@ class AdmitElectronicDocument
                     'CreateUserId' => 0,
                     'CreateDate' => now(),
                 ]);
-                $this->storeLines($document, $data, (float) $processingPayload['igvRate']);
+                $this->storeLines($document, $processingPayload);
                 $this->storeReference($document, $processingPayload);
                 DB::table('McrDocumentPayload')->insert([
                     'McrDocumentID' => $document->getKey(),
@@ -218,9 +222,9 @@ class AdmitElectronicDocument
             || str_contains($message, 'McrDocument.McrApiClientID, McrDocument.McrCompanyConfigID, McrDocument.McrExternalReference');
     }
 
-    private function storeLines(McrDocument $document, FacturaData $data, float $igvRate): void
+    private function storeLines(McrDocument $document, array $payload): void
     {
-        foreach ($data->items as $index => $line) {
+        foreach ($payload['items'] as $index => $line) {
             DB::table('McrDocumentLine')->insert([
                 'McrDocumentID' => $document->getKey(),
                 'McrLineNumber' => $index + 1,
@@ -231,9 +235,11 @@ class AdmitElectronicDocument
                 'McrUnitValue' => $line['mtoValorUnitario'],
                 'McrUnitPrice' => $line['mtoPrecioUnitario'],
                 'McrTaxBase' => $line['mtoBaseIgv'],
-                'McrTaxRate' => $igvRate,
+                'McrTaxRate' => $payload['igvRate'],
                 'McrTaxAmount' => $line['igv'],
-                'McrLineTotal' => round($line['mtoPrecioUnitario'] * $line['cantidad'], 6),
+                'McrLineTotal' => DocumentType::tryFrom($payload['tipoDoc'])?->isNote()
+                    ? DecimalAmount::add($line['mtoValorVenta'], $line['igv'])
+                    : round($line['mtoPrecioUnitario'] * $line['cantidad'], 6),
                 'SecStatus' => true,
                 'CreateUserId' => 0,
                 'CreateDate' => now(),

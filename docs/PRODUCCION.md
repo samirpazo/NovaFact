@@ -95,7 +95,9 @@ En el backend de Nova configurar:
 {
   "BillingService": {
     "Url": "https://facturacion.midominio.com",
-    "Token": "<el-mismo-BILLING_SERVICE_TOKEN>"
+    "Token": "<el-mismo-BILLING_SERVICE_TOKEN>",
+    "ClientCode": "nova-restaurant",
+    "CompanyId": 1
   }
 }
 ```
@@ -107,7 +109,7 @@ Reconstruir y publicar Nova después de cambiar la URL. El frontend no debe apun
 1. `GET https://facturacion.midominio.com/health/live` responde correctamente.
 2. Nova puede consultar la configuración de empresa.
 3. Emitir una boleta/factura de prueba autorizada.
-4. Confirmar que el worker procesa la cola y que el callback actualiza Nova.
+4. Confirmar que el worker procesa la cola y que Nova obtiene el estado mediante consulta de `submission_id`.
 5. Descargar PDF, XML y CDR mediante URLs protegidas.
 6. Revisar logs y confirmar que no aparecen secretos.
 7. Configurar HTTPS, firewall, copias de seguridad de PostgreSQL y rotación del token.
@@ -119,5 +121,4 @@ Reconstruir y publicar Nova después de cambiar la URL. El frontend no debe apun
 3. Cargar certificado y credenciales SOL de producción.
 4. Configurar series y correlativos.
 5. Publicar Nova con la URL/token nuevos.
-6. Ejecutar una emisión controlada y validar archivos, estado y callback.
-
+6. Ejecutar una emisión controlada y validar archivos y estado mediante polling.

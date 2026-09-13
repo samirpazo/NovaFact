@@ -7,6 +7,8 @@ use App\Enums\DebitNoteReason;
 use App\Enums\DocumentType;
 use App\Models\Empresa;
 use App\Models\McrDocument;
+use App\Support\DecimalAmount;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class NoteReferenceResolver
@@ -46,6 +48,36 @@ class NoteReferenceResolver
         return $payload;
     }
 
+    public function validateAccumulatedCredit(array $payload): void
+    {
+        if (($payload['tipoDoc'] ?? null) !== DocumentType::CreditNote->value
+            || ($payload['reference']['kind'] ?? null) !== 'internal') {
+            return;
+        }
+        $reason = CreditNoteReason::from($payload['reference']['reason_code']);
+        if (! $reason->consumesOriginalBalance()) {
+            return;
+        }
+        $original = McrDocument::whereKey($payload['reference']['document_id'])->lockForUpdate()->firstOrFail();
+        $consumingCodes = array_map(
+            fn (CreditNoteReason $item): string => $item->value,
+            array_filter(CreditNoteReason::cases(), fn (CreditNoteReason $item): bool => $item->supportedByCurrentTaxContract() && $item->consumesOriginalBalance()),
+        );
+        $reserved = DB::table('McrDocumentReference as reference')
+            ->join('McrDocument as note', 'note.McrDocumentID', '=', 'reference.McrDocumentID')
+            ->where('reference.ReferencedMcrDocumentID', $original->getKey())
+            ->where('note.McrDocumentType', DocumentType::CreditNote->value)
+            ->whereIn('reference.McrReasonCode', $consumingCodes)
+            ->whereIn('note.McrStatus', ['created', 'queued', 'processing', 'retry_pending', 'accepted', 'accepted_with_observations'])
+            ->selectRaw('CAST(note."McrTotalAmount" AS TEXT) AS exact_total')
+            ->pluck('exact_total')
+            ->reduce(fn (int $sum, mixed $amount): int => $sum + $this->storedCents($amount), 0);
+        $requested = DecimalAmount::minorUnits($payload['mtoTotal']);
+        if ($reserved + $requested > $this->storedCents($this->storedTotal($original->getKey()))) {
+            throw new UnprocessableEntityHttpException('Accumulated credit notes would exceed the referenced document total.');
+        }
+    }
+
     private function internal(Empresa $company, array $payload, array $reference, CreditNoteReason|DebitNoteReason $reason): array
     {
         $id = filter_var($reference['document_id'] ?? null, FILTER_VALIDATE_INT);
@@ -83,7 +115,7 @@ class NoteReferenceResolver
         }
         $this->validateSeriesFamily((string) ($payload['serie'] ?? ''), $original->McrSeriesCode);
         $noteCents = $this->cents($payload['mtoTotal'] ?? null);
-        $originalCents = $this->cents($original->McrTotalAmount);
+        $originalCents = $this->storedCents($this->storedTotal($original->getKey()));
         if ($reason instanceof CreditNoteReason && $noteCents > $originalCents) {
             throw new UnprocessableEntityHttpException('A credit note cannot exceed the referenced document total.');
         }
@@ -133,9 +165,27 @@ class NoteReferenceResolver
 
     private function cents(mixed $value): int
     {
-        $normalized = number_format((float) $value, 2, '.', '');
-        [$whole, $decimal] = explode('.', $normalized);
+        try {
+            return DecimalAmount::minorUnits($value);
+        } catch (\InvalidArgumentException $exception) {
+            throw new UnprocessableEntityHttpException('Monetary totals require exact non-negative decimals with at most two places.');
+        }
+    }
 
-        return ((int) $whole * 100) + (int) $decimal;
+    private function storedTotal(int $documentId): string
+    {
+        return (string) DB::table('McrDocument')
+            ->where('McrDocumentID', $documentId)
+            ->value(DB::raw('CAST("McrTotalAmount" AS TEXT)'));
+    }
+
+    private function storedCents(mixed $value): int
+    {
+        $exact = (string) $value;
+        if (str_contains($exact, '.')) {
+            $exact = rtrim(rtrim($exact, '0'), '.');
+        }
+
+        return DecimalAmount::minorUnits($exact);
     }
 }

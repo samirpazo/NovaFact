@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\DocumentType;
+use App\Support\DecimalAmount;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -73,6 +74,38 @@ class StoreFacturaRequest extends FormRequest
                 $v->errors()->add('clientTipoDoc', 'Una nota sobre factura requiere adquirente con RUC.');
             }
             if (! $d || ! isset($d['items'])) {
+                return;
+            }
+            if (DocumentType::tryFrom($d['tipoDoc'] ?? '')?->isNote()) {
+                try {
+                    $base = 0;
+                    $igv = 0;
+                    $rate = $d['igvRate'] ?? 18;
+                    foreach ($d['items'] as $index => $item) {
+                        $lineBase = DecimalAmount::minorUnits($item['mtoBaseIgv']);
+                        $lineIgv = DecimalAmount::minorUnits($item['igv']);
+                        if (DecimalAmount::percentageMinorUnits($item['mtoBaseIgv'], $rate) !== $lineIgv) {
+                            $v->errors()->add("items.$index.igv", 'El IGV de la línea no coincide con su base y tasa.');
+                        }
+                        DecimalAmount::normalize($item['cantidad'], 6);
+                        DecimalAmount::normalize($item['mtoValorUnitario'], 6);
+                        DecimalAmount::normalize($item['mtoPrecioUnitario'], 6);
+                        $base += $lineBase;
+                        $igv += $lineIgv;
+                    }
+                    if ($base !== DecimalAmount::minorUnits($d['mtoOperGravada'])) {
+                        $v->errors()->add('mtoOperGravada', 'No coincide exactamente con la suma de bases del detalle.');
+                    }
+                    if ($igv !== DecimalAmount::minorUnits($d['mtoIGV'])) {
+                        $v->errors()->add('mtoIGV', 'No coincide exactamente con la suma del IGV del detalle.');
+                    }
+                    if ($base + $igv !== DecimalAmount::minorUnits($d['mtoTotal'])) {
+                        $v->errors()->add('mtoTotal', 'No coincide exactamente con base gravada + IGV.');
+                    }
+                } catch (\InvalidArgumentException $exception) {
+                    $v->errors()->add('mtoTotal', 'Los importes de notas deben enviarse como enteros o strings decimales exactos con máximo 2 decimales; cantidades y precios unitarios permiten 6.');
+                }
+
                 return;
             }
             $base = round(array_sum(array_map(fn ($i) => (float) $i['mtoBaseIgv'], $d['items'])), 2);

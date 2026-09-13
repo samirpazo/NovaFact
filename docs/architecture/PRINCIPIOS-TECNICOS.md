@@ -11,3 +11,7 @@ Una prueba verde únicamente en SQLite no constituye evidencia suficiente para c
 SQLite puede mantenerse como apoyo para pruebas rápidas, unitarias o de lógica independientes del motor. No se adaptará ni simplificará una implementación de producción para obtener compatibilidad con SQLite cuando eso degrade o condicione el diseño correcto para PostgreSQL. Ante diferencias entre ambos motores, prevalece PostgreSQL.
 
 Esta regla rige las fases presentes y futuras del proyecto.
+
+## Exactitud monetaria fiscal
+
+Las decisiones de integridad monetaria se realizan con decimales exactos o unidades menores enteras. No se usan `float` para comparar límites, recomponer totales, calcular impuestos ni decidir admisiones. Cada contrato declara su escala y su regla de redondeo; una entrada con precisión excedente se rechaza en lugar de redondearse silenciosamente. Las conversiones exigidas por una librería externa sólo ocurren en su frontera, después de completar las validaciones y persistir el snapshot decimal canónico.

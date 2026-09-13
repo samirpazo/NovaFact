@@ -46,4 +46,9 @@ enum CreditNoteReason: string
     {
         return ! in_array($this, [self::Bonus, self::ExportAdjustment, self::IvapAdjustment, self::PaymentTermsCorrection], true);
     }
+
+    public function consumesOriginalBalance(): bool
+    {
+        return $this !== self::DescriptionCorrection;
+    }
 }

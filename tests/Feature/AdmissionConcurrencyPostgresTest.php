@@ -189,9 +189,12 @@ it('deduplicates twenty concurrent note external references with different keys'
 })->with(['07', '08']);
 
 it('allocates fifty gapless correlatives for each note series', function (string $type) {
-    $original = persistedOriginal();
+    $originals = $type === '07'
+        ? collect(range(1, 50))->map(fn () => persistedOriginal())->all()
+        : [persistedOriginal()];
     $operations = [];
     foreach (range(1, 50) as $number) {
+        $original = $originals[$type === '07' ? $number - 1 : 0];
         $payload = notePayload($type, 'internal', $original->getKey());
         $payload['reference']['reason'] = "Concurrent adjustment $number";
         $operations[] = ['context' => pipelineContext("number-note-$type-$number"), 'payload' => $payload];
@@ -218,6 +221,27 @@ it('allows two distinct concurrent notes over the same internal document', funct
     expect(collect($results)->where('ok', true))->toHaveCount(2)
         ->and(McrDocument::whereIn('McrDocumentType', ['07', '08'])->count())->toBe(2)
         ->and(DB::table('McrDocumentReference')->where('ReferencedMcrDocumentID', $original->getKey())->count())->toBe(2);
+});
+
+it('serializes concurrent credits on one origin and prevents accumulated over-credit', function () {
+    $original = persistedOriginal();
+    $payloadA = notePayload('07', 'internal', $original->getKey());
+    $payloadB = notePayload('07', 'internal', $original->getKey());
+    foreach ([&$payloadA, &$payloadB] as &$payload) {
+        $payload['mtoOperGravada'] = $payload['items'][0]['mtoBaseIgv'] = $payload['items'][0]['mtoValorVenta'] = '60.00';
+        $payload['mtoIGV'] = $payload['items'][0]['igv'] = '10.80';
+        $payload['mtoTotal'] = $payload['items'][0]['mtoPrecioUnitario'] = '70.80';
+    }
+    unset($payload);
+    $results = concurrentAdmissions([
+        ['context' => pipelineContext('over-credit-a'), 'payload' => $payloadA],
+        ['context' => pipelineContext('over-credit-b'), 'payload' => $payloadB],
+    ]);
+
+    expect(collect($results)->where('ok', true))->toHaveCount(1)
+        ->and(collect($results)->where('status', 422))->toHaveCount(1)
+        ->and(McrDocument::where('McrDocumentType', '07')->count())->toBe(1)
+        ->and(DB::table('jobs')->count())->toBe(1);
 });
 
 it('migrates legacy data without changing documents and survives down then up', function () {

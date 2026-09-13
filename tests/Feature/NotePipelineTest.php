@@ -112,9 +112,52 @@ it('rejects a note series from the wrong family or document type', function () {
         ->toThrow(UnprocessableEntityHttpException::class);
 });
 
+it('enforces exact credit limits and accumulated internal balance', function () {
+    $original = persistedOriginal();
+    $partialA = notePayload('07', 'internal', $original->getKey());
+    $partialA['mtoOperGravada'] = $partialA['items'][0]['mtoBaseIgv'] = $partialA['items'][0]['mtoValorVenta'] = '60.00';
+    $partialA['mtoIGV'] = $partialA['items'][0]['igv'] = '10.80';
+    $partialA['mtoTotal'] = $partialA['items'][0]['mtoPrecioUnitario'] = '70.80';
+    $partialB = notePayload('07', 'internal', $original->getKey());
+    $partialB['mtoOperGravada'] = $partialB['items'][0]['mtoBaseIgv'] = $partialB['items'][0]['mtoValorVenta'] = '39.99';
+    $partialB['mtoIGV'] = $partialB['items'][0]['igv'] = '7.20';
+    $partialB['mtoTotal'] = $partialB['items'][0]['mtoPrecioUnitario'] = '47.19';
+    app(AdmitElectronicDocument::class)->execute(pipelineContext('partial-a'), $partialA);
+    app(AdmitElectronicDocument::class)->execute(pipelineContext('partial-b'), $partialB);
+
+    $oneCent = notePayload('07', 'internal', $original->getKey());
+    $oneCent['mtoOperGravada'] = $oneCent['items'][0]['mtoBaseIgv'] = $oneCent['items'][0]['mtoValorVenta'] = '0.01';
+    $oneCent['mtoIGV'] = $oneCent['items'][0]['igv'] = '0.00';
+    $oneCent['mtoTotal'] = $oneCent['items'][0]['mtoPrecioUnitario'] = '0.01';
+    app(AdmitElectronicDocument::class)->execute(pipelineContext('one-cent-exact'), $oneCent);
+    expect(fn () => app(AdmitElectronicDocument::class)->execute(pipelineContext('one-cent-over'), $oneCent))
+        ->toThrow(UnprocessableEntityHttpException::class);
+    expect(McrDocument::where('McrDocumentType', '07')->sum('McrTotalAmount'))->toEqual(118);
+});
+
+it('does not let a rejected credit note consume internal balance', function () {
+    $original = persistedOriginal();
+    $first = app(AdmitElectronicDocument::class)->execute(pipelineContext('rejected-credit'), notePayload('07', 'internal', $original->getKey()));
+    McrDocument::whereKey($first->documentId)->update(['McrStatus' => 'rejected']);
+    $second = app(AdmitElectronicDocument::class)->execute(pipelineContext('replacement-credit'), notePayload('07', 'internal', $original->getKey()));
+    expect($second->documentId)->not->toBe($first->documentId);
+});
+
+it('rejects monetary precision beyond cents before admission', function () {
+    $original = persistedOriginal();
+    $payload = notePayload('07', 'internal', $original->getKey());
+    $payload['mtoTotal'] = '118.001';
+    expect(fn () => app(AdmitElectronicDocument::class)->execute(pipelineContext('invalid-precision'), $payload))
+        ->toThrow(UnprocessableEntityHttpException::class);
+    expect(McrDocument::where('McrDocumentType', '07')->count())->toBe(0);
+});
+
 it('inherits standard key and external-reference idempotency for notes', function (string $type) {
     $original = persistedOriginal();
     $payload = notePayload($type, 'internal', $original->getKey());
+    if ($type === '07') {
+        $payload['reference']['reason_code'] = '03';
+    }
     $first = app(AdmitElectronicDocument::class)->execute(pipelineContext('note-key-'.$type, 'ERP-NOTE-'.$type), $payload);
     $sameKey = app(AdmitElectronicDocument::class)->execute(pipelineContext('note-key-'.$type, 'ERP-NOTE-'.$type), $payload);
     $sameExternal = app(AdmitElectronicDocument::class)->execute(pipelineContext('note-alias-'.$type, 'ERP-NOTE-'.$type), $payload);
@@ -132,7 +175,7 @@ it('builds structural UBL 2.1 XML and a Greenter report PDF for each note type',
     Storage::fake('local');
     $payload = notePayload($type, 'external');
     $data = FacturaData::fromArray([...$payload, 'correlativo' => '15']);
-    $note = app(NoteService::class)->map($data, $payload['reference'], Empresa::firstOrFail());
+    $note = app(NoteService::class)->map($data, $payload['reference'], Empresa::firstOrFail(), '118.00', '118.00');
     $xml = (new NoteBuilder)->build($note);
     $dom = new DOMDocument;
     $dom->loadXML($xml);
