@@ -87,15 +87,34 @@ class InvoicePdfService
             'height="200"',
             'height="90"',
             'height="40"',
+            'height="80"',
+            'cellpadding="9"',
+            'cellpadding="6"',
+            'margin: 20px 0',
             '<br><br><span style="font-family:Tahoma, Geneva, sans-serif; font-size:12px"',
         ], [
-            'padding:10px !important',
-            'height="120px"',
-            'height="120"',
-            'height="55"',
-            'height="20"',
+            'padding:8px !important',
+            'height="108px"',
+            'height="108"',
+            'height="52"',
+            'height="18"',
+            'height="48"',
+            'cellpadding="4"',
+            'cellpadding="3"',
+            'margin: 8px 0',
             '<span style="font-family:Tahoma, Geneva, sans-serif; font-size:12px"',
         ], $html);
+
+        // Ajuste final de densidad: la plantilla oficial de Greenter está
+        // pensada para impresión con mucho aire. Estas reglas mantienen la
+        // estructura SUNAT, pero reducen márgenes y espacios improductivos.
+        $html = str_replace('</head>', '<style>
+            @page { margin: 8mm 10mm; }
+            body { font-size: 10px !important; line-height: 1.15 !important; }
+            table { margin-bottom: 4px !important; }
+            td, th { padding-top: 2px !important; padding-bottom: 2px !important; }
+            h1, h2, h3, h4, h5, h6, p { margin-top: 2px !important; margin-bottom: 2px !important; }
+        </style></head>', $html);
 
         $options = new Options;
         $options->set('isRemoteEnabled', false);

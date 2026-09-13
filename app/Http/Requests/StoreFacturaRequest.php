@@ -50,6 +50,13 @@ class StoreFacturaRequest extends FormRequest
             $base = round(array_sum(array_map(fn($i) => (float) $i['mtoBaseIgv'], $d['items'])), 2);
             $igv = round(array_sum(array_map(fn($i) => (float) $i['igv'], $d['items'])), 2);
             $total = round($base + $igv, 2);
+            $rate = isset($d['igvRate']) ? (float) $d['igvRate'] : 18.0;
+            foreach ($d['items'] as $index => $item) {
+                $expected = round(((float) $item['mtoBaseIgv']) * $rate / 100, 2);
+                if (abs($expected - (float) $item['igv']) > 0.01) {
+                    $v->errors()->add("items.$index.igv", 'El IGV de la línea no coincide con su base y tasa.');
+                }
+            }
             if (abs($base - (float)($d['mtoOperGravada'] ?? 0)) > 0.01) $v->errors()->add('mtoOperGravada', 'No coincide con la suma de bases del detalle.');
             if (abs($igv - (float)($d['mtoIGV'] ?? 0)) > 0.01) $v->errors()->add('mtoIGV', 'No coincide con la suma del IGV del detalle.');
             if (abs($total - (float)($d['mtoTotal'] ?? 0)) > 0.01) $v->errors()->add('mtoTotal', 'No coincide con base gravada + IGV.');
