@@ -3,6 +3,8 @@
 return [
     'billing' => [
         'token' => env('BILLING_SERVICE_TOKEN'),
+        'legacy_client_code' => env('BILLING_LEGACY_CLIENT_CODE', 'legacy'),
+        'legacy_company_id' => env('BILLING_LEGACY_COMPANY_ID'),
     ],
 
     /*

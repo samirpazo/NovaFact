@@ -3,7 +3,7 @@
 use App\Http\Controllers\Api\FacturacionController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['session.token', 'idempotency'])->group(function () {
+Route::middleware(['session.token'])->group(function () {
     Route::prefix('facturacion')->group(function () {
         Route::post('emitir-factura', [FacturacionController::class, 'emitFactura']);
         Route::post('boletas/resumen-diario', [FacturacionController::class, 'resumenBoletas']);

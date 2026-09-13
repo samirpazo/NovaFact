@@ -4,92 +4,97 @@ namespace App\Services\Facturacion;
 
 use App\DTO\FacturaData;
 use App\Services\Sunat\GreenterService;
-use App\Services\Sunat\XmlService;
-use Greenter\Model\Sale\FormaPago\PagoContado;
-use Greenter\Model\Sale\Invoice;
-use Greenter\Model\Sale\Legend;
-use Greenter\Model\Sale\SaleDetail;
 use Greenter\Model\Client\Client;
 use Greenter\Model\Company\Company;
 use Greenter\Model\Response\BillResult;
-use App\Models\McrSeries;
+use Greenter\Model\Sale\Invoice;
+use Greenter\Model\Sale\Legend;
+use Greenter\Model\Sale\SaleDetail;
 
 class FacturaService
 {
-    protected ?array $lastPdf = null;
-    protected ?int $lastDocumentId = null;
-
     public function __construct(
         protected GreenterService $greenterService,
-        protected XmlService $xmlService,
-        protected \App\Repositories\EmpresaRepository $empresaRepository,
         protected InvoicePdfService $invoicePdfService,
-        protected McrPersistenceService $persistenceService,
         protected ManagedFileService $managedFileService
     ) {}
 
-    public function emitir(FacturaData $data): BillResult
+    /** Process a reserved document without ever allocating another number. */
+    public function emitPersisted(\App\Models\McrDocument $document, FacturaData $data): BillResult
     {
-        $companyConfig = $this->empresaRepository->getActive();
-        $data->serie ??= McrSeries::query()->where('McrCompanyConfigID', $companyConfig->getKey())->where('McrDocumentType', $data->tipoDoc)->where('McrIsActive', true)->where('SecStatus', true)->value('McrSeriesCode');
-        $data->serie ??= $data->tipoDoc === '03' ? 'B001' : 'F001';
-        $data->correlativo ??= '1';
-        [$series, $correlative] = $this->persistenceService->reserveSeries($companyConfig, $data);
-        $data->correlativo = (string) $correlative;
-        $invoice = $this->mapToInvoice($data);
-        
-        // Obtenemos y guardamos el XML *antes* de enviarlo a SUNAT para registro (Evita perderlo si falla la conexión)
-        $xmlSigned = $this->greenterService->getXml($invoice);
-        $xmlPath = $this->xmlService->save($xmlSigned, $invoice->getName().'.xml');
-
-        $result = $this->greenterService->send($invoice);
-
-        if ($result->isSuccess()) {
-            $cdrZip = $result->getCdrZip();
-            if ($cdrZip) {
-                $cdrPath = $this->xmlService->saveCdr($cdrZip, 'R-'.$invoice->getName().'.zip');
+        $company = \App\Models\Empresa::findOrFail($document->McrCompanyConfigID);
+        if (! $company->McrIsActive || ! $company->SecStatus ||
+            $company->McrEnvironment !== (config('sunat.production') ? 'production' : 'beta')) {
+            throw new \RuntimeException('Document company is not active in this worker environment.');
+        }
+        $data->serie = $document->McrSeriesCode;
+        $data->correlativo = (string) $document->McrCorrelative;
+        $invoice = $this->mapToInvoice($data, $company);
+        $disk = \Illuminate\Support\Facades\Storage::disk('local');
+        $name = $document->getKey().'-'.$invoice->getName();
+        $xmlPath = 'facturacion/xml/'.$name.'.xml';
+        if ($disk->exists($xmlPath)) {
+            $xml = $disk->get($xmlPath);
+        } else {
+            $xml = $this->greenterService->getXml($invoice, $company);
+            if ($xml === '' || ! $disk->put($xmlPath, $xml)) {
+                throw new \RuntimeException('Could not persist signed XML.');
             }
+        }
+        $document->update(['McrXmlPath' => $xmlPath]);
+        // Send exactly the signed bytes that were persisted, without signing twice.
+        $result = $this->greenterService->sendSignedXml(Invoice::class, $invoice->getName(), $xml, $company);
 
-            $this->lastPdf = $this->invoicePdfService->generate($invoice);
-            $document = $this->persistenceService->storeAccepted(
-                $data, $companyConfig, $correlative, $result, $this->lastPdf, $invoice->getName(),
-                $this->managedFileService->register($xmlPath, $invoice->getName().'.xml', 'application/xml'),
-                isset($cdrPath) ? $this->managedFileService->register($cdrPath, 'R-'.$invoice->getName().'.zip', 'application/zip') : null,
-                $this->managedFileService->register($this->lastPdf['path'], $invoice->getName().'.pdf', 'application/pdf')
-            );
-            $this->lastDocumentId = $document->getKey();
+        // Durable response checkpoint precedes slow/local artifact work. A worker
+        // timeout during PDF generation must preserve the known fiscal outcome.
+        $document->update(['McrProcessingResult' => json_encode(\App\Services\Documents\ProcessingResult::fromBillResult($result)->toArray(), JSON_THROW_ON_ERROR)]);
+
+        // A PDF/GenFile failure after SUNAT answered must never trigger a resend.
+        try {
+            if ($result->getCdrZip()) {
+                $cdrPath = 'facturacion/cdr/R-'.$name.'.zip';
+                if (! $disk->exists($cdrPath) && ! $disk->put($cdrPath, $result->getCdrZip())) {
+                    throw new \RuntimeException('Could not persist CDR.');
+                }
+                $document->update(['McrCdrPath' => $cdrPath]);
+
+            }
+            $document->update(['McrXmlFilID' => $this->managedFileService->register($xmlPath, $name.'.xml', 'application/xml')]);
+            if (isset($cdrPath)) {
+                $document->update(['McrCdrFilID' => $this->managedFileService->register($cdrPath, 'R-'.$name.'.zip', 'application/zip')]);
+            }
+            if ($result->isSuccess() && $result->getCdrResponse()?->isAccepted()) {
+                $pdf = $this->invoicePdfService->generate($invoice, $name.'.pdf');
+                $document->update(['McrPdfPath' => $pdf['path']]);
+                $document->update(['McrPdfFilID' => $this->managedFileService->register($pdf['path'], $name.'.pdf', 'application/pdf')]);
+            }
+        } catch (\Throwable $e) {
+            $document->update(['McrArtifactError' => 'Artifact generation or registration failed; rebuild locally without resending to SUNAT.']);
+            \Illuminate\Support\Facades\Log::error('document.artifact.failed', [
+                'document_id' => $document->getKey(), 'exception_type' => get_class($e),
+            ]);
         }
 
         return $result;
     }
 
-    public function getLastPdf(): ?array
+    protected function mapToInvoice(FacturaData $data, \App\Models\Empresa $companyConfig): Invoice
     {
-        return $this->lastPdf;
-    }
-
-    public function getLastDocumentId(): ?int
-    {
-        return $this->lastDocumentId;
-    }
-
-    protected function mapToInvoice(FacturaData $data): Invoice
-    {
-        $client = (new Client())
+        $client = (new Client)
             ->setTipoDoc($data->clientTipoDoc)
             ->setNumDoc($data->clientNumDoc)
             ->setRznSocial($data->clientRznSocial);
 
-        $empresaActual = $this->empresaRepository->getActive();
+        $empresaActual = $companyConfig;
         // La tasa debe salir de la configuración tributaria de la empresa. Usar
         // una tasa fija aquí desincroniza el XML cuando la operación (por ejemplo
         // en Beta) está configurada con una tasa distinta al 18% estándar.
         $igvRate = $data->igvRate ?? (float) ($empresaActual->McrIgvRate ?? 18);
-        $company = (new Company())
+        $company = (new Company)
             ->setRuc($empresaActual->CpyRuc)
             ->setRazonSocial($empresaActual->CpyBusinessName)
             ->setNombreComercial($empresaActual->CpyTradename)
-            ->setAddress((new \Greenter\Model\Company\Address())
+            ->setAddress((new \Greenter\Model\Company\Address)
                 ->setUbigueo($empresaActual->ubigeo)
                 ->setDepartamento($empresaActual->departamento)
                 ->setProvincia($empresaActual->provincia)
@@ -100,7 +105,7 @@ class FacturaService
 
         $subTotal = floatval($data->mtoOperGravada + $data->mtoIGV);
 
-        $invoice = (new \Greenter\Model\Sale\Invoice())
+        $invoice = (new \Greenter\Model\Sale\Invoice)
             ->setUblVersion('2.1')
             ->setTipoOperacion('0101') // Venta interna
             ->setTipoDoc($data->tipoDoc)
@@ -115,7 +120,7 @@ class FacturaService
             ->setTotalImpuestos($data->mtoIGV)
             ->setValorVenta($data->mtoOperGravada)
             ->setSubTotal($subTotal)
-            ->setFormaPago(new \Greenter\Model\Sale\FormaPagos\FormaPagoContado());
+            ->setFormaPago(new \Greenter\Model\Sale\FormaPagos\FormaPagoContado);
 
         // Manejo Exclusivo de Anticipos
         if ($data->mtoTotalAnticipos > 0) {
@@ -131,10 +136,10 @@ class FacturaService
         $invoice->setMtoImpVenta($data->mtoTotal);
 
         // Guías relacionadas
-        if (!empty($data->guias)) {
+        if (! empty($data->guias)) {
             $relatedDocs = [];
             foreach ($data->guias as $g) {
-                $relatedDocs[] = (new \Greenter\Model\Sale\Document())
+                $relatedDocs[] = (new \Greenter\Model\Sale\Document)
                     ->setTipoDoc($g['tipoDoc'])
                     ->setNroDoc($g['nroDoc']);
             }
@@ -142,23 +147,23 @@ class FacturaService
         }
 
         // Facturas de Anticipo relacionadas
-        if (!empty($data->anticipos)) {
+        if (! empty($data->anticipos)) {
             $relatedPrepayments = [];
             foreach ($data->anticipos as $anticipo) {
                 // Si el anticipo tiene base reportamos el Descuento Global
                 if (isset($anticipo['montoBase'])) {
-                    $descuentoGlobal = (new \Greenter\Model\Sale\Charge())
-                        ->setCodTipo('04') 
+                    $descuentoGlobal = (new \Greenter\Model\Sale\Charge)
+                        ->setCodTipo('04')
                         ->setFactor(1.00)
                         ->setMontoBase($anticipo['montoBase'])
                         ->setMonto($anticipo['montoBase']);
-                    
+
                     $descuentos = $invoice->getDescuentos() ?? [];
                     $descuentos[] = $descuentoGlobal;
                     $invoice->setDescuentos($descuentos);
                 }
 
-                $relatedPrepayments[] = (new \Greenter\Model\Sale\Prepayment())
+                $relatedPrepayments[] = (new \Greenter\Model\Sale\Prepayment)
                     ->setTipoDocRel($anticipo['tipoDocRel'])
                     ->setNroDocRel($anticipo['nroDocRel'])
                     ->setTotal($anticipo['total']);
@@ -168,7 +173,7 @@ class FacturaService
 
         $details = [];
         foreach ($data->items as $item) {
-            $details[] = (new SaleDetail())
+            $details[] = (new SaleDetail)
                 ->setCodProducto($item['codigo'] ?? 'P001')
                 ->setUnidad($item['unidad'] ?? 'NIU')
                 ->setCantidad($item['cantidad'])
@@ -185,9 +190,9 @@ class FacturaService
 
         $invoice->setDetails($details)
             ->setLegends([
-                (new Legend())
+                (new Legend)
                     ->setCode('1000')
-                    ->setValue('SON ' . number_format($data->mtoTotal, 2, '.', '') . ' SOLES')
+                    ->setValue('SON '.number_format($data->mtoTotal, 2, '.', '').' SOLES'),
             ]);
 
         return $invoice;

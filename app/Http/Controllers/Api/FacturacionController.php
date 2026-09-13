@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Facturacion\EmitFacturaAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFacturaRequest;
-use App\Jobs\EmitFacturaJob;
 use App\Models\Empresa;
 use App\Models\McrSeries;
 use App\Services\Facturacion\InvoicePdfService;
@@ -19,19 +17,16 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class FacturacionController extends Controller
 {
     public function __construct(
-        protected EmitFacturaAction $emitFacturaAction,
         protected \App\Actions\Facturacion\EmitGuiaAction $emitGuiaAction
     ) {}
 
     public function emitFactura(StoreFacturaRequest $request): JsonResponse
     {
-        // Validaciones podrían ir en un FormRequest para desacoplar
         $payload = $request->validated();
-        $payload['_idempotency_key'] = $request->header('Idempotency-Key');
-        $submissionId = (int) DB::table('McrSunatSubmission')->insertGetId(['McrOperation' => 'emitir', 'McrTransport' => 'soap', 'McrAttemptNumber' => 0, 'McrStatus' => 'pending', 'McrMetadata' => json_encode(['tipoDoc' => $payload['tipoDoc'], 'idempotency_key' => $payload['_idempotency_key']]), 'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now()], 'McrSunatSubmissionID');
-        EmitFacturaJob::dispatch($payload, $submissionId);
+        $context = app(\App\Services\Documents\LegacyAdmissionContextResolver::class)->resolve($request);
+        unset($payload['external_reference']);
 
-        return response()->json(['success' => true, 'status' => 'pending', 'submission_id' => $submissionId], 202);
+        return response()->json(app(\App\Services\Documents\AdmitElectronicDocument::class)->execute($context, $payload)->toArray(), 202);
     }
 
     public function companyConfig(): JsonResponse
@@ -183,7 +178,7 @@ class FacturacionController extends Controller
 
     public function ticket80mm(int $documentId, InvoicePdfService $pdfService)
     {
-        $document = DB::table('McrDocument')->where('McrDocumentID', $documentId)->where('McrStatus', 'accepted')->first();
+        $document = DB::table('McrDocument')->where('McrDocumentID', $documentId)->whereIn('McrStatus', ['accepted', 'accepted_with_observations'])->first();
         if (! $document) {
             return response()->json(['message' => 'Comprobante no encontrado'], 404);
         }

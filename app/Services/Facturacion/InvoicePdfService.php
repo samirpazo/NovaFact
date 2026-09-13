@@ -52,7 +52,7 @@ class InvoicePdfService
         return $pdf->output();
     }
 
-    public function generate(Invoice $invoice): array
+    public function generate(Invoice $invoice, ?string $filename = null): array
     {
         $htmlReport = new HtmlReport;
         $htmlReport->setTemplate('invoice.html.twig');
@@ -127,8 +127,13 @@ class InvoicePdfService
         $dompdf->render();
 
         $content = $dompdf->output();
-        $path = 'facturacion/pdf/'.$invoice->getName().'.pdf';
-        Storage::disk('local')->put($path, $content);
+        if ($filename !== null && $filename !== basename($filename)) {
+            throw new \InvalidArgumentException('Invalid PDF filename.');
+        }
+        $path = 'facturacion/pdf/'.($filename ?? $invoice->getName().'.pdf');
+        if (! Storage::disk('local')->put($path, $content)) {
+            throw new \RuntimeException('Could not persist PDF.');
+        }
 
         return [
             'path' => $path,

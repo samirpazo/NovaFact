@@ -2,13 +2,10 @@
 
 use App\DTO\FacturaData;
 use App\Models\Empresa;
-use App\Repositories\EmpresaRepository;
 use App\Services\Facturacion\FacturaService;
 use App\Services\Facturacion\InvoicePdfService;
 use App\Services\Facturacion\ManagedFileService;
-use App\Services\Facturacion\McrPersistenceService;
 use App\Services\Sunat\GreenterService;
-use App\Services\Sunat\XmlService;
 use Greenter\Xml\Builder\InvoiceBuilder;
 
 test('the XML keeps the requested IGV rate and coherent line amounts', function () {
@@ -24,15 +21,9 @@ test('the XML keeps the requested IGV rate and coherent line amounts', function 
         'McrIgvRate' => 18,
     ]);
 
-    $repository = Mockery::mock(EmpresaRepository::class);
-    $repository->shouldReceive('getActive')->once()->andReturn($company);
-
     $service = new FacturaService(
         Mockery::mock(GreenterService::class),
-        Mockery::mock(XmlService::class),
-        $repository,
         Mockery::mock(InvoicePdfService::class),
-        Mockery::mock(McrPersistenceService::class),
         Mockery::mock(ManagedFileService::class),
     );
 
@@ -63,7 +54,7 @@ test('the XML keeps the requested IGV rate and coherent line amounts', function 
     ]);
 
     $method = new ReflectionMethod(FacturaService::class, 'mapToInvoice');
-    $invoice = $method->invoke($service, $data);
+    $invoice = $method->invoke($service, $data, $company);
     $xml = (new InvoiceBuilder)->build($invoice);
     $document = new DOMDocument;
     $document->loadXML($xml);

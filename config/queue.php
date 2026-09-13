@@ -31,6 +31,16 @@ return [
 
     'connections' => [
 
+        // Admission and queue insertion share the default application transaction.
+        'documents' => [
+            'driver' => 'database',
+            'connection' => null,
+            'table' => 'jobs',
+            'queue' => 'default',
+            'retry_after' => 180,
+            'after_commit' => false,
+        ],
+
         'sync' => [
             'driver' => 'sync',
         ],

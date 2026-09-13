@@ -2,41 +2,34 @@
 
 namespace App\Services\Sunat;
 
+use Greenter\Model\Despatch\Despatch;
 use Greenter\Model\DocumentInterface;
 use Greenter\Model\Response\BillResult;
-use Greenter\Model\Sale\Invoice;
-use Greenter\Model\Despatch\Despatch;
 use Greenter\See;
-use Greenter\Ws\Reference\CookieReader;
-use Greenter\Ws\Reference\CurlReceiver;
-use Illuminate\Support\Facades\Storage;
 
 class GreenterService
 {
     protected See $see;
 
-    public function __construct(protected
-        CertificateService $certificateService, protected
-        \App\Repositories\EmpresaRepository $empresaRepository
-        )
-    {
-        $this->see = new See();
+    public function __construct(protected CertificateService $certificateService, protected \App\Repositories\EmpresaRepository $empresaRepository
+    ) {
+        $this->see = new See;
     }
 
-    protected function configure(): void
+    protected function configure(?\App\Models\Empresa $company = null): void
     {
-        $empresa = $this->empresaRepository->getActive();
+        $empresa = $company ?? $this->empresaRepository->getActive();
 
-        if (!$empresa) {
+        if (! $empresa) {
             return;
         }
 
         $cert = $this->certificateService->getCertificate($empresa->CpyNameCertificate, $empresa->CpyPasswordCertificate);
-        
+
         if ($cert) {
             $this->see->setCertificate($cert);
         }
-        
+
         $this->see->setClaveSOL($empresa->CpyRuc, $empresa->CpyUserSol, $empresa->CpyPasswordSol);
         $this->see->setService(config('sunat.endpoints.soap'));
     }
@@ -51,6 +44,17 @@ class GreenterService
         return $this->see->send($document);
     }
 
+    public function sendSignedXml(string $type, string $name, string $xml, \App\Models\Empresa $company): BillResult
+    {
+        $this->configure($company);
+        $result = $this->see->sendXml($type, $name, $xml);
+        if (! $result instanceof BillResult) {
+            throw new \RuntimeException('Unexpected SUNAT response type.');
+        }
+
+        return $result;
+    }
+
     public function getEmpresaRepository(): \App\Repositories\EmpresaRepository
     {
         return $this->empresaRepository;
@@ -59,13 +63,14 @@ class GreenterService
     public function getStatus(?string $ticket): object
     {
         $this->configure();
+
         return $this->see->getStatus($ticket);
     }
 
-    public function getXml(DocumentInterface $document): string
+    public function getXml(DocumentInterface $document, ?\App\Models\Empresa $company = null): string
     {
-        $this->configure();
-        
+        $this->configure($company);
+
         // En el API REST de SUNAT para GRE (2022), el nodo cac:DespatchParty (Remitente) es obligatorio
         // y debe coincidir con el emisor. Greenter no siempre lo inyecta correctamente en sus plantillas,
         // por lo que lo inyectamos manualmente si falta o si es tipo 31.
@@ -80,7 +85,7 @@ class GreenterService
             $xmlUnsigned = $builder->build($document);
 
             // Cargar DOM
-            $dom = new \DOMDocument();
+            $dom = new \DOMDocument;
             $dom->loadXML($xmlUnsigned);
             $xpath = new \DOMXPath($dom);
             $xpath->registerNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
