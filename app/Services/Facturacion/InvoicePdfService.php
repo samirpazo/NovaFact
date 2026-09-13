@@ -2,6 +2,7 @@
 
 namespace App\Services\Facturacion;
 
+use App\Models\Empresa;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
@@ -59,6 +60,10 @@ class InvoicePdfService
         $transparentLogo = base64_decode(
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLzWQAAAABJRU5ErkJggg=='
         );
+        $companyConfig = Empresa::where('McrRuc', $invoice->getCompany()?->getRuc())->first();
+        if ($companyConfig?->McrLogoPath && Storage::disk('local')->exists($companyConfig->McrLogoPath)) {
+            $transparentLogo = Storage::disk('local')->get($companyConfig->McrLogoPath);
+        }
 
         $taxRate = (float) $invoice->getMtoOperGravadas() > 0
             ? round(((float) $invoice->getMtoIGV() / (float) $invoice->getMtoOperGravadas()) * 100, 2)
@@ -73,6 +78,24 @@ class InvoicePdfService
                 'numIGV' => (string) $taxRate,
             ],
         ]);
+
+        // La plantilla de Greenter deja demasiado espacio en el encabezado para A4.
+        // Compactamos el layout sin modificar la dependencia externa.
+        $html = str_replace([
+            'padding:30px; !important',
+            'height="200px"',
+            'height="200"',
+            'height="90"',
+            'height="40"',
+            '<br><br><span style="font-family:Tahoma, Geneva, sans-serif; font-size:12px"',
+        ], [
+            'padding:10px !important',
+            'height="120px"',
+            'height="120"',
+            'height="55"',
+            'height="20"',
+            '<span style="font-family:Tahoma, Geneva, sans-serif; font-size:12px"',
+        ], $html);
 
         $options = new Options;
         $options->set('isRemoteEnabled', false);
