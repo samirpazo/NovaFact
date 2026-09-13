@@ -12,6 +12,10 @@ SQLite puede mantenerse como apoyo para pruebas rápidas, unitarias o de lógica
 
 Esta regla rige las fases presentes y futuras del proyecto.
 
+## Documentos con ticket
+
+Cuando SUNAT responde con ticket, el documento entra en `awaiting_sunat` y cada consulta se ejecuta mediante un delayed job que transporta IDs y persiste su intento. Ningún request ni worker mantiene bucles de polling o usa `sleep()`; un resultado desconocido se conserva recuperable y nunca se clasifica como rechazo fiscal.
+
 ## Exactitud monetaria fiscal
 
 Las decisiones de integridad monetaria se realizan con decimales exactos o unidades menores enteras. No se usan `float` para comparar límites, recomponer totales, calcular impuestos ni decidir admisiones. Cada contrato declara su escala y su regla de redondeo; una entrada con precisión excedente se rechaza en lugar de redondearse silenciosamente. Las conversiones exigidas por una librería externa sólo ocurren en su frontera, después de completar las validaciones y persistir el snapshot decimal canónico.

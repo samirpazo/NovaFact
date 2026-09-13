@@ -88,37 +88,4 @@ class ConfigValidatorService
         return ['success' => true];
     }
 
-    /**
-     * Valida la configuración de la empresa activa específicamente para Guías (API REST).
-     */
-    public function validateGuia(): array
-    {
-        // Primero validamos la base de facturación (RUC, SOL, Certificado)
-        $baseValid = $this->validateFacturacion();
-        if (!$baseValid['success']) {
-            return $baseValid;
-        }
-
-        $empresa = $this->empresaRepository->getActive();
-
-        if (empty($empresa->CpyClientId)) {
-            return [
-                'success' => false,
-                'message' => 'Configuración incompleta (API REST)',
-                'error' => 'El Client ID (ID de API GRE) no está configurado para la emisión de guías REST.',
-                'field' => 'CpyClientId'
-            ];
-        }
-
-        if (empty($empresa->CpyClientSecret)) {
-            return [
-                'success' => false,
-                'message' => 'Configuración incompleta (API REST)',
-                'error' => 'El Client Secret (Clave de API GRE) no está configurado para la emisión de guías REST.',
-                'field' => 'CpyClientSecret'
-            ];
-        }
-
-        return ['success' => true];
-    }
 }

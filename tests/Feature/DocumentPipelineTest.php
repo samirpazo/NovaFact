@@ -289,7 +289,7 @@ it('requires a configured active series and never auto creates one', function ()
     expect(fn () => app(AdmitElectronicDocument::class)->execute(pipelineContext(), pipelinePayload()))
         ->toThrow(UnprocessableEntityHttpException::class);
     expect(McrDocument::count())->toBe(0)->and(DB::table('McrIdempotency')->count())->toBe(0)
-        ->and(DB::table('McrSeries')->count())->toBe(6);
+        ->and(DB::table('McrSeries')->count())->toBe(8);
 });
 
 it('exposes idempotent reconstruction and conflicts through the legacy HTTP facade', function () {

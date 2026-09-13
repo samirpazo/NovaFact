@@ -13,6 +13,8 @@ final readonly class ProcessingResult
         public ?string $description = null,
         public array $notes = [],
         public ?string $error = null,
+        public ?string $ticket = null,
+        public array $metadata = [],
     ) {}
 
     public static function fromBillResult(BillResult $result): self
@@ -32,11 +34,12 @@ final readonly class ProcessingResult
     public static function fromArray(array $result): self
     {
         return new self(DocumentState::from($result['status']), $result['code'] ?? null,
-            $result['description'] ?? null, $result['notes'] ?? [], $result['error'] ?? null);
+            $result['description'] ?? null, $result['notes'] ?? [], $result['error'] ?? null,
+            $result['ticket'] ?? null, $result['metadata'] ?? []);
     }
 
     public function toArray(): array
     {
-        return ['status' => $this->state->value, 'code' => $this->code, 'description' => $this->description, 'notes' => $this->notes, 'error' => $this->error];
+        return ['status' => $this->state->value, 'code' => $this->code, 'description' => $this->description, 'notes' => $this->notes, 'error' => $this->error, 'ticket' => $this->ticket, 'metadata' => $this->metadata];
     }
 }

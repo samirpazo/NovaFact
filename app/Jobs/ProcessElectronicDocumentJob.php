@@ -57,6 +57,10 @@ class ProcessElectronicDocumentJob implements ShouldQueue
                 : new ProcessingResult(DocumentState::Failed, error: 'Technical processing failure. Reconcile the original document before resending.');
         }
         $lifecycle->finish($this->documentId, $this->submissionId, $attemptId, $result, (int) ((hrtime(true) - $started) / 1_000_000));
+        if ($result->state === DocumentState::AwaitingSunat && $result->ticket) {
+            PollSunatSubmissionJob::dispatch($this->submissionId)->onConnection('documents')
+                ->delay(now()->addSeconds(PollSunatSubmissionJob::BACKOFF[0]));
+        }
     }
 
     public function failed(\Throwable $exception): void

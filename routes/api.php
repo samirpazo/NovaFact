@@ -21,7 +21,7 @@ Route::middleware(['session.token'])->group(function () {
         Route::post('emitir-guia', [FacturacionController::class, 'emitGuia']);
         Route::get('historial-guia/{ticket}', [FacturacionController::class, 'consultarHistorialGuia']);
         Route::get('archivo/{tipo}/{nombre}', [FacturacionController::class, 'descargarArchivo'])
-            ->whereIn('tipo', ['pdf', 'xml', 'cdr'])
+            ->whereIn('tipo', ['pdf', 'xml', 'zip', 'cdr'])
             ->where('nombre', '[A-Za-z0-9._-]+');
     });
 });

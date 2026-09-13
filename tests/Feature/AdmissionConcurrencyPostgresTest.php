@@ -133,6 +133,25 @@ it('allocates fifty gapless correlatives through independent concurrent connecti
         ->and((int) DB::table('McrSeries')->where('McrDocumentType', '01')->value('McrNextCorrelative'))->toBe(51);
 });
 
+it('allocates fifty gapless correlatives for each GRE series', function (string $type) {
+    $operations=[];
+    foreach(range(1,50) as $number){ $payload=despatchPayload($type); $payload['destinatario']['razon_social']='GRE destination '.$number;
+        $operations[]=['context'=>pipelineContext("gre-number-$type-$number"),'payload'=>$payload]; }
+    $results=concurrentAdmissions($operations);
+    $correlatives=McrDocument::where('McrDocumentType',$type)->orderBy('McrCorrelative')->pluck('McrCorrelative')->map(fn($v)=>(int)$v)->all();
+    expect(collect($results)->where('ok',true))->toHaveCount(50)->and($correlatives)->toBe(range(1,50))
+        ->and((int)DB::table('McrSeries')->where('McrDocumentType',$type)->value('McrNextCorrelative'))->toBe(51);
+})->with(['09','31']);
+
+it('deduplicates twenty concurrent GRE admissions and external references', function (string $type) {
+    $sameKey=array_fill(0,20,['context'=>pipelineContext("gre-idem-$type"),'payload'=>despatchPayload($type)]);
+    $first=concurrentAdmissions($sameKey);
+    expect(collect($first)->where('ok',true))->toHaveCount(20)->and(collect($first)->pluck('document_id')->unique())->toHaveCount(1);
+    $operations=[]; foreach(range(1,20) as $i)$operations[]=['context'=>pipelineContext("gre-ext-$type-$i","WMS-GRE-$type-100"),'payload'=>despatchPayload($type)];
+    $second=concurrentAdmissions($operations);
+    expect(collect($second)->where('ok',true))->toHaveCount(20)->and(collect($second)->pluck('document_id')->unique())->toHaveCount(1);
+})->with(['09','31']);
+
 it('scopes a simultaneous shared key across clients and companies', function () {
     $clientB = McrApiClient::create([
         'McrCode' => 'parallel-client-b', 'McrName' => 'Parallel client B', 'McrIsActive' => true,

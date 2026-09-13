@@ -16,9 +16,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FacturacionController extends Controller
 {
-    public function __construct(
-        protected \App\Actions\Facturacion\EmitGuiaAction $emitGuiaAction
-    ) {}
 
     public function emitFactura(StoreFacturaRequest $request): JsonResponse
     {
@@ -136,13 +133,15 @@ class FacturacionController extends Controller
 
     public function updateSeries(Request $request): JsonResponse
     {
-        $data = $request->validate(['series' => ['required', 'array', 'min:1'], 'series.*.document_type' => ['required', 'in:01,03'], 'series.*.series_code' => ['required', 'regex:/^[FB][A-Z0-9]{3}$/'], 'series.*.next_correlative' => ['required', 'integer', 'min:1'], 'series.*.active' => ['required', 'boolean']]);
+        $data = $request->validate(['series' => ['required', 'array', 'min:1'], 'series.*.document_type' => ['required', 'in:01,03,07,08,09,31'], 'series.*.series_code' => ['required', 'regex:/^[A-Z][A-Z0-9]{3}$/'], 'series.*.next_correlative' => ['required', 'integer', 'min:1'], 'series.*.active' => ['required', 'boolean']]);
         $company = Empresa::where('McrIsActive', true)->where('SecStatus', true)->where('McrEnvironment', 'beta')->first();
         if (! $company) {
             return response()->json(['message' => 'No hay una empresa Beta activa configurada.'], 422);
         }
         DB::transaction(function () use ($data, $company) {
             foreach ($data['series'] as $item) {
+                $requiredPrefix = match ($item['document_type']) { '01'=>'F', '03'=>'B', '07','08'=>null, '09'=>'T', '31'=>'V' };
+                abort_if($requiredPrefix !== null && ! str_starts_with($item['series_code'], $requiredPrefix), 422, 'La serie no corresponde al tipo de documento.');
                 $maxUsed = (int) DB::table('McrDocument')->where('McrCompanyConfigID', $company->getKey())->where('McrDocumentType', $item['document_type'])->where('McrSeriesCode', $item['series_code'])->max('McrCorrelative');
                 abort_if($item['next_correlative'] <= $maxUsed, 422, 'El próximo correlativo debe ser mayor al último comprobante emitido.');
                 $series = McrSeries::firstOrNew(['McrCompanyConfigID' => $company->getKey(), 'McrDocumentType' => $item['document_type'], 'McrSeriesCode' => $item['series_code']]);
@@ -193,66 +192,31 @@ class FacturacionController extends Controller
 
     public function emitGuia(Request $request): JsonResponse
     {
-        $result = $this->emitGuiaAction->execute($request->all());
-
-        if (! $result['success']) {
-            return response()->json($result, 400);
-        }
-
-        return response()->json($result);
+        $payload = $request->all();
+        $context = app(\App\Services\Documents\LegacyAdmissionContextResolver::class)->resolve($request);
+        unset($payload['external_reference']);
+        return response()->json(app(\App\Services\Documents\AdmitElectronicDocument::class)->execute($context, $payload)->toArray(), 202);
     }
 
-    public function consultarHistorialGuia(string $ticket, \App\Services\Sunat\SunatRestService $restService): JsonResponse
+    public function consultarHistorialGuia(string $ticket): JsonResponse
     {
-        try {
-            $status = $restService->getStatus($ticket);
-
-            if ($status['success']) {
-                $response = [
-                    'success' => true,
-                    'cod_respuesta' => $status['cod_respuesta'],
-                    'message' => 'Historial consultado exitosamente',
-                ];
-
-                if (! empty($status['arc_cdr'])) {
-                    $response['cdr_base64'] = $status['arc_cdr']; // Retornamos el Base64 listo para guardar
-                }
-
-                if (isset($status['error'])) {
-                    $response['sunat_errors'] = $status['error'];
-                }
-
-                return response()->json($response);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al consultar el ticket en SUNAT',
-                'error' => $status['error'] ?? 'Desconocido',
-            ], 400);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Excepción al consultar historial',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+        $submission = DB::table('McrSunatSubmission')->where('McrTicket', $ticket)->first();
+        if (! $submission) return response()->json(['message' => 'Ticket no encontrado'], 404);
+        return response()->json(['submission_id'=>(int)$submission->McrSunatSubmissionID,
+            'document_id'=>(int)$submission->McrDocumentID,'ticket'=>$submission->McrTicket,
+            'status'=>$submission->McrStatus,'error'=>$submission->McrError]);
     }
 
     public function descargarArchivo(string $tipo, string $nombre): StreamedResponse|JsonResponse
     {
-        $directories = [
-            'pdf' => 'facturacion/pdf',
-            'xml' => 'facturacion/xml',
-            'cdr' => 'facturacion/cdr',
-        ];
-
-        if (! isset($directories[$tipo]) || $nombre !== basename($nombre)) {
+        $columns = ['pdf'=>'McrPdfPath','xml'=>'McrXmlPath','zip'=>'McrZipPath','cdr'=>'McrCdrPath'];
+        if (! isset($columns[$tipo]) || $nombre !== basename($nombre)) {
             return response()->json(['message' => 'Archivo inválido'], 400);
         }
-
-        $path = $directories[$tipo].'/'.$nombre;
+        $column=$columns[$tipo];
+        $path = DB::table('McrDocument')->whereNotNull($column)->get([$column])->pluck($column)
+            ->first(fn ($candidate) => basename((string)$candidate) === $nombre);
+        $path ??= 'facturacion/'.$tipo.'/'.$nombre;
         $disk = Storage::disk('local');
         if (! $disk->exists($path)) {
             return response()->json(['message' => 'Archivo no encontrado'], 404);
@@ -261,7 +225,7 @@ class FacturacionController extends Controller
         $mime = match ($tipo) {
             'pdf' => 'application/pdf',
             'xml' => 'application/xml; charset=UTF-8',
-            'cdr' => 'application/zip',
+            'zip', 'cdr' => 'application/zip',
         };
 
         return response()->streamDownload(
@@ -306,7 +270,7 @@ class FacturacionController extends Controller
 
     public function estadoEnvio(int $submissionId): JsonResponse
     {
-        $row = DB::table('McrSunatSubmission as s')->leftJoin('McrDocument as d', 'd.McrDocumentID', '=', 's.McrDocumentID')->where('s.McrSunatSubmissionID', $submissionId)->select('s.*', 'd.McrDocumentType', 'd.McrSeriesCode', 'd.McrCorrelative', 'd.McrPdfPath', 'd.McrXmlPath', 'd.McrCdrPath')->first();
+        $row = DB::table('McrSunatSubmission as s')->leftJoin('McrDocument as d', 'd.McrDocumentID', '=', 's.McrDocumentID')->where('s.McrSunatSubmissionID', $submissionId)->select('s.*', 'd.McrDocumentType', 'd.McrSeriesCode', 'd.McrCorrelative', 'd.McrPdfPath', 'd.McrXmlPath', 'd.McrZipPath', 'd.McrCdrPath')->first();
         if (! $row) {
             return response()->json(['message' => 'Envío no encontrado'], 404);
         }
@@ -322,6 +286,7 @@ class FacturacionController extends Controller
             'document_number' => $row->McrSeriesCode ? $row->McrSeriesCode.'-'.$row->McrCorrelative : null,
             'pdf_url' => $row->McrPdfPath ? url('/api/facturacion/archivo/pdf/'.basename($row->McrPdfPath)) : null,
             'xml_url' => $row->McrXmlPath ? url('/api/facturacion/archivo/xml/'.basename($row->McrXmlPath)) : null,
+            'zip_url' => $row->McrZipPath ? url('/api/facturacion/archivo/zip/'.basename($row->McrZipPath)) : null,
             'cdr_url' => $row->McrCdrPath ? url('/api/facturacion/archivo/cdr/'.basename($row->McrCdrPath)) : null,
         ]);
     }

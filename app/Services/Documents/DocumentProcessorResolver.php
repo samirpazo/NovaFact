@@ -7,6 +7,8 @@ use App\Services\Documents\Processors\CreditNoteProcessor;
 use App\Services\Documents\Processors\DebitNoteProcessor;
 use App\Services\Documents\Processors\InvoiceProcessor;
 use App\Services\Documents\Processors\ReceiptProcessor;
+use App\Services\Documents\Processors\SenderDespatchProcessor;
+use App\Services\Documents\Processors\CarrierDespatchProcessor;
 use InvalidArgumentException;
 
 class DocumentProcessorResolver
@@ -18,6 +20,8 @@ class DocumentProcessorResolver
             DocumentType::Receipt->value => ReceiptProcessor::class,
             DocumentType::CreditNote->value => CreditNoteProcessor::class,
             DocumentType::DebitNote->value => DebitNoteProcessor::class,
+            DocumentType::SenderDespatch->value => SenderDespatchProcessor::class,
+            DocumentType::CarrierDespatch->value => CarrierDespatchProcessor::class,
             default => throw new InvalidArgumentException('Document type has no verified processor.'),
         });
     }

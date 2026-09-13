@@ -55,9 +55,11 @@ class DocumentLifecycle
             $this->transition($documentId, $submissionId, $result->state);
             McrDocument::whereKey($documentId)->update(['McrSunatCode' => $result->code, 'McrSunatDescription' => $result->description]);
             DB::table('McrSunatSubmission')->where('McrSunatSubmissionID', $submissionId)->update([
-                'McrCompletedAt' => now(), 'McrError' => $result->error,
+                'McrCompletedAt' => $result->state === DocumentState::AwaitingSunat ? null : now(), 'McrError' => $result->error,
+                'McrTicket' => $result->ticket,
                 'McrMetadata' => json_encode($result->toArray(), JSON_THROW_ON_ERROR),
             ]);
+            if ($result->ticket) McrDocument::whereKey($documentId)->update(['McrSunatTicket' => $result->ticket]);
             DB::table('McrSunatAttempt')->where('McrSunatAttemptID', $attemptId)
                 ->where('McrSunatSubmissionID', $submissionId)->update([
                     'McrStatus' => $result->state->value, 'McrCompletedAt' => now(), 'McrDurationMs' => $durationMs,

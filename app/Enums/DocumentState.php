@@ -9,6 +9,7 @@ enum DocumentState: string
     case Processing = 'processing';
     case Sent = 'sent';
     case PendingSunat = 'pending_sunat';
+    case AwaitingSunat = 'awaiting_sunat';
     case Accepted = 'accepted';
     case AcceptedWithObservations = 'accepted_with_observations';
     case Rejected = 'rejected';
@@ -23,8 +24,8 @@ enum DocumentState: string
         return in_array($next, match ($this) {
             self::Created => [self::Queued],
             self::Queued, self::RetryPending => [self::Processing, self::Failed],
-            self::Processing => [self::Sent, self::PendingSunat, self::Accepted, self::AcceptedWithObservations, self::Rejected, self::RetryPending, self::Failed],
-            self::Sent, self::PendingSunat => [self::PendingSunat, self::Accepted, self::AcceptedWithObservations, self::Rejected, self::RetryPending, self::Failed],
+            self::Processing => [self::Sent, self::PendingSunat, self::AwaitingSunat, self::Accepted, self::AcceptedWithObservations, self::Rejected, self::RetryPending, self::Failed],
+            self::Sent, self::PendingSunat, self::AwaitingSunat => [self::PendingSunat, self::AwaitingSunat, self::Accepted, self::AcceptedWithObservations, self::Rejected, self::RetryPending, self::Failed],
             self::Accepted, self::AcceptedWithObservations, self::VoidRejected => [self::VoidPending],
             self::VoidPending => [self::VoidAccepted, self::VoidRejected],
             self::Rejected, self::Failed, self::VoidAccepted => [],

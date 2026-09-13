@@ -2,7 +2,6 @@
 
 namespace App\Services\Documents;
 
-use App\DTO\FacturaData;
 use App\Enums\DocumentState;
 use App\Enums\DocumentType;
 use App\Jobs\ProcessElectronicDocumentJob;
@@ -19,7 +18,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class AdmitElectronicDocument
 {
-    public function __construct(private SalesPayloadNormalizer $normalizer, private NoteReferenceResolver $noteReferences) {}
+    public function __construct(private SalesPayloadNormalizer $normalizer, private DespatchPayloadNormalizer $despatchNormalizer, private NoteReferenceResolver $noteReferences) {}
 
     public function execute(AdmissionContext $context, array $payload): AdmissionResult
     {
@@ -31,7 +30,10 @@ class AdmitElectronicDocument
                     throw new UnprocessableEntityHttpException('Client and company must be active before admission.');
                 }
 
-                $canonicalRequest = $this->normalizer->request($this->noteReferences->resolve($company, $payload));
+                $isDespatch = DocumentType::tryFrom((string) ($payload['tipoDoc'] ?? ''))?->isDespatch() === true;
+                $canonicalRequest = $isDespatch
+                    ? $this->despatchNormalizer->request($payload)
+                    : $this->normalizer->request($this->noteReferences->resolve($company, $payload));
 
                 $series = $this->resolveConfiguredSeries($company, $canonicalRequest);
                 $canonicalRequest['serie'] = $series->McrSeriesCode;
@@ -47,22 +49,22 @@ class AdmitElectronicDocument
                     'McrUpdatedAt' => now(),
                 ], 'McrIdempotencyID');
 
-                $this->noteReferences->validateAccumulatedCredit($canonicalRequest);
+                if (! $isDespatch) {
+                    $this->noteReferences->validateAccumulatedCredit($canonicalRequest);
+                }
 
                 $series = McrSeries::whereKey($series->getKey())->lockForUpdate()->firstOrFail();
                 if (! $series->McrIsActive || ! $series->SecStatus) {
                     throw new UnprocessableEntityHttpException('The configured series is inactive.');
                 }
                 $number = (int) $series->McrNextCorrelative;
-                $processingPayload = $this->normalizer->processing(
-                    $canonicalRequest,
-                    $series->McrSeriesCode,
-                    $number,
-                    (float) ($company->McrIgvRate ?? 18),
-                );
+                $processingPayload = $isDespatch
+                    ? $this->despatchNormalizer->processing($canonicalRequest, $series->McrSeriesCode, $number)
+                    : $this->normalizer->processing($canonicalRequest, $series->McrSeriesCode, $number, (float) ($company->McrIgvRate ?? 18));
                 $json = PayloadCodec::encode($processingPayload);
                 $payloadHash = hash('sha256', $json);
-                $data = FacturaData::fromArray($processingPayload);
+                $type = DocumentType::from($processingPayload['tipoDoc']);
+                $recipient = $isDespatch ? $processingPayload['destinatario'] : null;
 
                 $document = McrDocument::create([
                     'McrApiClientID' => $client->getKey(),
@@ -70,18 +72,18 @@ class AdmitElectronicDocument
                     'McrSeriesID' => $series->getKey(),
                     'McrExternalReference' => $context->externalReference,
                     'McrRequestHash' => $requestHash,
-                    'McrDocumentType' => $data->tipoDoc,
-                    'McrSeriesCode' => $data->serie,
+                    'McrDocumentType' => $type->value,
+                    'McrSeriesCode' => $processingPayload['serie'],
                     'McrCorrelative' => $number,
-                    'McrIssueDate' => substr($data->fechaEmision, 0, 10),
-                    'McrIssuedAt' => $data->fechaEmision,
-                    'McrCurrencyCode' => $data->tipoMoneda,
-                    'McrCustomerDocumentType' => $data->clientTipoDoc,
-                    'McrCustomerDocumentNumber' => $data->clientNumDoc,
-                    'McrCustomerName' => $data->clientRznSocial,
-                    'McrTaxableAmount' => $processingPayload['mtoOperGravada'],
-                    'McrTaxAmount' => $processingPayload['mtoIGV'],
-                    'McrTotalAmount' => $processingPayload['mtoTotal'],
+                    'McrIssueDate' => substr($processingPayload['fechaEmision'], 0, 10),
+                    'McrIssuedAt' => $processingPayload['fechaEmision'],
+                    'McrCurrencyCode' => $isDespatch ? 'PEN' : $processingPayload['tipoMoneda'],
+                    'McrCustomerDocumentType' => $isDespatch ? $recipient['tipo_documento'] : $processingPayload['clientTipoDoc'],
+                    'McrCustomerDocumentNumber' => $isDespatch ? $recipient['numero_documento'] : $processingPayload['clientNumDoc'],
+                    'McrCustomerName' => $isDespatch ? $recipient['razon_social'] : $processingPayload['clientRznSocial'],
+                    'McrTaxableAmount' => $isDespatch ? 0 : $processingPayload['mtoOperGravada'],
+                    'McrTaxAmount' => $isDespatch ? 0 : $processingPayload['mtoIGV'],
+                    'McrTotalAmount' => $isDespatch ? 0 : $processingPayload['mtoTotal'],
                     'McrStatus' => DocumentState::Created->value,
                     'McrIdempotencyKey' => $context->idempotencyKey,
                     'McrPayloadHash' => $payloadHash,
@@ -89,8 +91,8 @@ class AdmitElectronicDocument
                     'CreateUserId' => 0,
                     'CreateDate' => now(),
                 ]);
-                $this->storeLines($document, $processingPayload);
-                $this->storeReference($document, $processingPayload);
+                $this->storeLines($document, $processingPayload, $isDespatch);
+                if (! $isDespatch) $this->storeReference($document, $processingPayload);
                 DB::table('McrDocumentPayload')->insert([
                     'McrDocumentID' => $document->getKey(),
                     'McrPayload' => $json,
@@ -100,7 +102,7 @@ class AdmitElectronicDocument
                 $submissionId = (int) DB::table('McrSunatSubmission')->insertGetId([
                     'McrDocumentID' => $document->getKey(),
                     'McrOperation' => 'emitir',
-                    'McrTransport' => 'soap',
+                    'McrTransport' => $isDespatch ? 'gre_rest' : 'soap',
                     'McrAttemptNumber' => 0,
                     'McrStatus' => DocumentState::Created->value,
                     'SecStatus' => true,
@@ -128,7 +130,9 @@ class AdmitElectronicDocument
             if (! $company) {
                 throw $exception;
             }
-            $canonicalRequest = $this->normalizer->request($this->noteReferences->resolve($company, $payload));
+            $canonicalRequest = DocumentType::tryFrom((string) ($payload['tipoDoc'] ?? ''))?->isDespatch()
+                ? $this->despatchNormalizer->request($payload)
+                : $this->normalizer->request($this->noteReferences->resolve($company, $payload));
 
             return $this->resolveConcurrentWinner($context, $canonicalRequest);
         }
@@ -148,6 +152,13 @@ class AdmitElectronicDocument
         $series = $query->first();
         if (! $series) {
             throw new UnprocessableEntityHttpException('The series does not exist, is inactive, or does not belong to this company and document type.');
+        }
+        $type = DocumentType::from($payload['tipoDoc']);
+        if ($type->isDespatch()) {
+            $prefix = $type === DocumentType::SenderDespatch ? 'T' : 'V';
+            if (! preg_match('/^'.$prefix.'[A-Z0-9]{3}$/D', $series->McrSeriesCode)) {
+                throw new UnprocessableEntityHttpException('The configured series has an invalid prefix for this GRE type.');
+            }
         }
 
         return $series;
@@ -222,9 +233,9 @@ class AdmitElectronicDocument
             || str_contains($message, 'McrDocument.McrApiClientID, McrDocument.McrCompanyConfigID, McrDocument.McrExternalReference');
     }
 
-    private function storeLines(McrDocument $document, array $payload): void
+    private function storeLines(McrDocument $document, array $payload, bool $isDespatch = false): void
     {
-        foreach ($payload['items'] as $index => $line) {
+        foreach (($isDespatch ? $payload['bienes'] : $payload['items']) as $index => $line) {
             DB::table('McrDocumentLine')->insert([
                 'McrDocumentID' => $document->getKey(),
                 'McrLineNumber' => $index + 1,
@@ -232,14 +243,14 @@ class AdmitElectronicDocument
                 'McrDescription' => $line['descripcion'],
                 'McrUnitCode' => $line['unidad'] ?? 'NIU',
                 'McrQuantity' => $line['cantidad'],
-                'McrUnitValue' => $line['mtoValorUnitario'],
-                'McrUnitPrice' => $line['mtoPrecioUnitario'],
-                'McrTaxBase' => $line['mtoBaseIgv'],
-                'McrTaxRate' => $payload['igvRate'],
-                'McrTaxAmount' => $line['igv'],
-                'McrLineTotal' => DocumentType::tryFrom($payload['tipoDoc'])?->isNote()
+                'McrUnitValue' => $isDespatch ? 0 : $line['mtoValorUnitario'],
+                'McrUnitPrice' => $isDespatch ? 0 : $line['mtoPrecioUnitario'],
+                'McrTaxBase' => $isDespatch ? 0 : $line['mtoBaseIgv'],
+                'McrTaxRate' => $isDespatch ? 0 : $payload['igvRate'],
+                'McrTaxAmount' => $isDespatch ? 0 : $line['igv'],
+                'McrLineTotal' => $isDespatch ? 0 : (DocumentType::tryFrom($payload['tipoDoc'])?->isNote()
                     ? DecimalAmount::add($line['mtoValorVenta'], $line['igv'])
-                    : round($line['mtoPrecioUnitario'] * $line['cantidad'], 6),
+                    : round($line['mtoPrecioUnitario'] * $line['cantidad'], 6)),
                 'SecStatus' => true,
                 'CreateUserId' => 0,
                 'CreateDate' => now(),
