@@ -17,8 +17,9 @@ class BoletaSummaryService
         if ($docs->isEmpty()) return ['success'=>false,'message'=>'No hay boletas aceptadas para la fecha indicada.'];
         $correlative = ((int) DB::table('McrDailySummary')->where('McrCompanyConfigID',$company->getKey())->max('McrCorrelative')) + 1;
         $summary = (new Summary())->setCorrelativo((string)$correlative)->setFecGeneracion(new \DateTime($date))->setFecResumen(new \DateTime(date('Y-m-d')))->setMoneda('PEN');
+        $igvRate = (float) ($company->McrIgvRate ?? 18);
         $summary->setCompany((new Company())->setRuc($company->CpyRuc)->setRazonSocial($company->CpyBusinessName)->setNombreComercial($company->CpyTradename)->setAddress((new Address())->setUbigueo($company->ubigeo)->setDireccion($company->CpyAddress)));
-        $details=[]; foreach($docs as $doc){ $details[]=(new SummaryDetail())->setTipoDoc('03')->setSerieNro($doc->McrSeriesCode.'-'.$doc->McrCorrelative)->setClienteTipo($doc->McrCustomerDocumentType)->setClienteNro($doc->McrCustomerDocumentNumber)->setEstado('1')->setTotal((float)$doc->McrTotalAmount)->setMtoOperGravadas((float)$doc->McrTaxableAmount)->setMtoIGV((float)$doc->McrTaxAmount)->setPorcentajeIgv(18); }
+        $details=[]; foreach($docs as $doc){ $taxable=(float)$doc->McrTaxableAmount; $rate=$taxable > 0 ? round(((float)$doc->McrTaxAmount / $taxable) * 100, 2) : $igvRate; $details[]=(new SummaryDetail())->setTipoDoc('03')->setSerieNro($doc->McrSeriesCode.'-'.$doc->McrCorrelative)->setClienteTipo($doc->McrCustomerDocumentType)->setClienteNro($doc->McrCustomerDocumentNumber)->setEstado('1')->setTotal((float)$doc->McrTotalAmount)->setMtoOperGravadas($taxable)->setMtoIGV((float)$doc->McrTaxAmount)->setPorcentajeIgv($rate); }
         $summary->setDetails($details);
         $xml = app(\App\Services\Sunat\GreenterService::class)->getXml($summary);
         $name=$summary->getName(); app(\App\Services\Sunat\XmlService::class)->save($xml,$name.'.xml');

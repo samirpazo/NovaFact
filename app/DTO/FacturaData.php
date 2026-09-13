@@ -17,6 +17,7 @@ class FacturaData
         public float $mtoIGV,
         public float $mtoTotal,
         public array $items, // Array de FacturaItemData
+        public ?float $igvRate = null,
         public ?string $observaciones = null,
         public array $guias = [],
         public array $anticipos = [],
@@ -40,6 +41,7 @@ class FacturaData
             mtoIGV: (float) $data['mtoIGV'],
             mtoTotal: (float) $data['mtoTotal'],
             items: $data['items'] ?? [],
+            igvRate: isset($data['igvRate']) ? (float) $data['igvRate'] : null,
             observaciones: $data['observaciones'] ?? null,
             guias: $data['guias'] ?? [],
             anticipos: $data['anticipos'] ?? [],

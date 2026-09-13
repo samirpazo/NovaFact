@@ -81,6 +81,10 @@ class FacturaService
             ->setRznSocial($data->clientRznSocial);
 
         $empresaActual = $this->empresaRepository->getActive();
+        // La tasa debe salir de la configuración tributaria de la empresa. Usar
+        // una tasa fija aquí desincroniza el XML cuando la operación (por ejemplo
+        // en Beta) está configurada con una tasa distinta al 18% estándar.
+        $igvRate = $data->igvRate ?? (float) ($empresaActual->McrIgvRate ?? 18);
         $company = (new Company())
             ->setRuc($empresaActual->CpyRuc)
             ->setRazonSocial($empresaActual->CpyBusinessName)
@@ -170,7 +174,7 @@ class FacturaService
                 ->setCantidad($item['cantidad'])
                 ->setDescripcion($item['descripcion'])
                 ->setMtoBaseIgv($item['mtoBaseIgv'])
-                ->setPorcentajeIgv(18.00)
+                ->setPorcentajeIgv($igvRate)
                 ->setIgv($item['igv'])
                 ->setTotalImpuestos($item['igv'])
                 ->setTipAfeIgv('10') // Gravado - Operación Onerosa

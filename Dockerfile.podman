@@ -3,12 +3,17 @@ WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader --no-scripts
 
-FROM php:8.3-apache
+FROM php:8.4-apache
 WORKDIR /var/www/html
-RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev unzip && docker-php-ext-configure gd --with-freetype --with-jpeg && docker-php-ext-install pdo_pgsql pgsql zip gd bcmath && a2enmod rewrite headers && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev libxml2-dev unzip && docker-php-ext-configure gd --with-freetype --with-jpeg && docker-php-ext-install pdo_pgsql pgsql zip gd bcmath soap && a2enmod rewrite headers && rm -rf /var/lib/apt/lists/*
 COPY --from=vendor /app/vendor ./vendor
 COPY . .
-RUN sed -ri 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf && chown -R www-data:www-data storage bootstrap/cache && chmod -R ug+rw storage bootstrap/cache
+COPY docker-entrypoint-podman.sh /usr/local/bin/docker-entrypoint-podman.sh
+RUN rm -f bootstrap/cache/*.php \
+    && sed -ri 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R ug+rw storage bootstrap/cache
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 EXPOSE 80
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-podman.sh"]
 CMD ["apache2-foreground"]

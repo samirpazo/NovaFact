@@ -20,6 +20,9 @@ class StoreFacturaRequest extends FormRequest
             'mtoOperGravada' => ['required','numeric','min:0'],
             'mtoIGV' => ['required','numeric','min:0'],
             'mtoTotal' => ['required','numeric','gt:0'],
+            // Opcional para mantener compatibilidad con clientes antiguos; las
+            // emisiones de Nova lo envían para evitar depender de una config global desactualizada.
+            'igvRate' => ['nullable','numeric','min:0','max:100'],
             'sumDsctoGlobal' => ['nullable','numeric','min:0'],
             'items' => ['required','array','min:1'],
             'items.*.codigo' => ['nullable','string','max:100'],
