@@ -60,8 +60,27 @@ final class SalesPayloadNormalizer
             'anticipos' => $data->anticipos,
             'mtoTotalAnticipos' => $data->mtoTotalAnticipos,
             'sumDsctoGlobal' => $data->sumDsctoGlobal,
+            'reference' => isset($payload['reference']) && is_array($payload['reference'])
+                ? $this->normalizeReference($payload['reference']) : null,
         ];
 
         return array_filter($normalized, static fn (mixed $value): bool => $value !== null);
+    }
+
+    private function normalizeReference(array $reference): array
+    {
+        return array_filter([
+            'kind' => $reference['kind'] ?? null,
+            'document_id' => isset($reference['document_id']) ? (int) $reference['document_id'] : null,
+            'document_type' => $reference['document_type'] ?? null,
+            'series' => isset($reference['series']) ? strtoupper((string) $reference['series']) : null,
+            'correlative' => isset($reference['correlative']) ? (int) $reference['correlative'] : null,
+            'issue_date' => isset($reference['issue_date']) ? substr((string) $reference['issue_date'], 0, 10) : null,
+            'currency' => $reference['currency'] ?? null,
+            'customer_document_type' => $reference['customer_document_type'] ?? null,
+            'customer_document_number' => $reference['customer_document_number'] ?? null,
+            'reason_code' => $reference['reason_code'] ?? null,
+            'reason' => isset($reference['reason']) ? trim((string) $reference['reason']) : null,
+        ], static fn (mixed $value): bool => $value !== null);
     }
 }

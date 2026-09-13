@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\DocumentType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class StoreFacturaRequest extends FormRequest
@@ -15,7 +17,7 @@ class StoreFacturaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tipoDoc' => ['required', 'in:01,03'],
+            'tipoDoc' => ['required', Rule::enum(DocumentType::class)],
             'external_reference' => ['nullable', 'string', 'max:150', 'regex:/^[A-Za-z0-9._:\/-]+$/'],
             'serie' => ['nullable', 'regex:/^[FB][A-Z0-9]{3}$/'],
             'correlativo' => ['nullable', 'integer', 'min:1', 'max:99999999'],
@@ -41,6 +43,18 @@ class StoreFacturaRequest extends FormRequest
             'items.*.mtoValorUnitario' => ['required', 'numeric', 'min:0'],
             'items.*.mtoValorVenta' => ['required', 'numeric', 'min:0'],
             'items.*.mtoPrecioUnitario' => ['required', 'numeric', 'min:0'],
+            'reference' => ['required_if:tipoDoc,07,08', 'array'],
+            'reference.kind' => ['required_if:tipoDoc,07,08', 'in:internal,external'],
+            'reference.document_id' => ['nullable', 'integer', 'min:1', 'required_if:reference.kind,internal'],
+            'reference.document_type' => ['nullable', 'in:01,03', 'required_if:reference.kind,external'],
+            'reference.series' => ['nullable', 'regex:/^[FB][A-Z0-9]{3}$/', 'required_if:reference.kind,external'],
+            'reference.correlative' => ['nullable', 'integer', 'min:1', 'max:99999999', 'required_if:reference.kind,external'],
+            'reference.issue_date' => ['nullable', 'date', 'required_if:reference.kind,external'],
+            'reference.currency' => ['nullable', 'in:PEN,USD', 'required_if:reference.kind,external'],
+            'reference.customer_document_type' => ['nullable', 'in:0,1,4,6,7,A', 'required_if:reference.kind,external'],
+            'reference.customer_document_number' => ['nullable', 'string', 'max:15', 'required_if:reference.kind,external'],
+            'reference.reason_code' => ['required_if:tipoDoc,07,08', 'string', 'size:2'],
+            'reference.reason' => ['nullable', 'string', 'max:500'],
         ];
     }
 
@@ -48,11 +62,15 @@ class StoreFacturaRequest extends FormRequest
     {
         $validator->after(function (Validator $v): void {
             $d = $this->validated();
-            if (($d['tipoDoc'] ?? null) === '01' && ($d['clientTipoDoc'] ?? null) !== '6') {
+            $affectedType = $d['reference']['document_type'] ?? null;
+            if (($d['tipoDoc'] ?? null) === DocumentType::Invoice->value && ($d['clientTipoDoc'] ?? null) !== '6') {
                 $v->errors()->add('clientTipoDoc', 'La factura requiere cliente con RUC (tipo 6).');
             }
-            if (($d['tipoDoc'] ?? null) === '03' && ($d['clientTipoDoc'] ?? null) === '6') {
+            if (($d['tipoDoc'] ?? null) === DocumentType::Receipt->value && ($d['clientTipoDoc'] ?? null) === '6') {
                 $v->errors()->add('clientTipoDoc', 'La boleta no debe emitirse con RUC como documento del cliente.');
+            }
+            if (DocumentType::tryFrom($d['tipoDoc'] ?? '')?->isNote() && $affectedType === DocumentType::Invoice->value && ($d['clientTipoDoc'] ?? null) !== '6') {
+                $v->errors()->add('clientTipoDoc', 'Una nota sobre factura requiere adquirente con RUC.');
             }
             if (! $d || ! isset($d['items'])) {
                 return;

@@ -43,7 +43,7 @@ function bootPipelineDatabase(): void
         'McrRuc' => '20123456789', 'McrBusinessName' => 'Pipeline fixture', 'McrEnvironment' => 'beta',
         'McrIsActive' => true, 'SecStatus' => true, 'McrIgvRate' => 18,
     ]);
-    foreach (['01' => 'F001', '03' => 'B001'] as $type => $series) {
+    foreach ([['01', 'F001'], ['03', 'B001'], ['07', 'FC01'], ['07', 'BC01'], ['08', 'FD01'], ['08', 'BD01']] as [$type, $series]) {
         \App\Models\McrSeries::create([
             'McrCompanyConfigID' => \App\Models\Empresa::firstOrFail()->getKey(),
             'McrDocumentType' => $type,
@@ -55,6 +55,48 @@ function bootPipelineDatabase(): void
             'CreateDate' => now(),
         ]);
     }
+}
+
+function persistedOriginal(string $type = '01', ?int $companyId = null, string $status = 'accepted'): \App\Models\McrDocument
+{
+    $companyId ??= \App\Models\Empresa::value('McrCompanyConfigID');
+    $correlative = ((int) \App\Models\McrDocument::where('McrCompanyConfigID', $companyId)
+        ->where('McrDocumentType', $type)->where('McrSeriesCode', $type === '01' ? 'F001' : 'B001')->max('McrCorrelative')) + 1;
+    $correlative = max(200, $correlative);
+
+    return \App\Models\McrDocument::create([
+        'McrApiClientID' => \App\Models\McrApiClient::where('McrCode', 'legacy')->value('McrApiClientID'),
+        'McrCompanyConfigID' => $companyId,
+        'McrDocumentType' => $type, 'McrSeriesCode' => $type === '01' ? 'F001' : 'B001', 'McrCorrelative' => $correlative,
+        'McrIssueDate' => '2026-09-01', 'McrIssuedAt' => '2026-09-01T10:00:00-05:00', 'McrCurrencyCode' => 'PEN',
+        'McrCustomerDocumentType' => $type === '01' ? '6' : '1',
+        'McrCustomerDocumentNumber' => $type === '01' ? '20123456789' : '12345678',
+        'McrCustomerName' => 'Original customer', 'McrTaxableAmount' => 100, 'McrTaxAmount' => 18,
+        'McrTotalAmount' => 118, 'McrStatus' => $status, 'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now(),
+    ]);
+}
+
+function notePayload(string $type = '07', string $kind = 'internal', ?int $documentId = null, string $affectedType = '01'): array
+{
+    $payload = pipelinePayload($affectedType);
+    $payload['tipoDoc'] = $type;
+    $family = $affectedType === '01' ? 'F' : 'B';
+    $payload['serie'] = $family.($type === '07' ? 'C01' : 'D01');
+    $payload['reference'] = [
+        'kind' => $kind, 'reason_code' => $type === '07' ? '04' : '02', 'reason' => 'Ajuste probado',
+    ];
+    if ($kind === 'internal') {
+        $payload['reference']['document_id'] = $documentId;
+    } else {
+        $payload['reference'] += [
+            'document_type' => $affectedType, 'series' => $affectedType === '01' ? 'F001' : 'B001',
+            'correlative' => 900, 'issue_date' => '2026-08-01', 'currency' => 'PEN',
+            'customer_document_type' => $payload['clientTipoDoc'],
+            'customer_document_number' => $payload['clientNumDoc'],
+        ];
+    }
+
+    return $payload;
 }
 
 function pipelineContext(string $key = 'test-key-0001', ?string $externalReference = null, ?int $clientId = null, ?int $companyId = null): \App\Services\Documents\AdmissionContext

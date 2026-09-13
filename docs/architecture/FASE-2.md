@@ -1,5 +1,7 @@
 # Fase 2 — identidad, idempotencia y numeración
 
+Esta fase aplica el principio permanente [PostgreSQL como fuente de verdad](PRINCIPIOS-TECNICOS.md#postgresql-como-fuente-de-verdad).
+
 ## Problema y decisión
 
 La idempotencia anterior vivía en middleware, comparaba bytes HTTP y tenía una clave global. Podía dejar registros `processing`, devolver 409 para una repetición legítima y no era atómica con correlativo, documento, submission o job. La empresa se seleccionaba implícitamente y una serie ausente se creaba durante la emisión.
@@ -45,9 +47,13 @@ Esta resolución no es autenticación definitiva: el bearer token global sigue t
 
 ## Migración y datos históricos
 
-`2026_09_13_000100_add_admission_identity.php` crea `McrApiClient`, añade identidad explícita al documento y amplía `McrIdempotency`. Crea un cliente técnico de migración con code `legacy`. Los documentos históricos reciben ese cliente; las identidades históricas se asocian con documento/submission cuando la relación puede demostrarse por `McrIdempotencyKey`. Las claves huérfanas se preservan y no se les inventa documento/submission.
+`2026_09_13_000100_add_admission_identity.php` crea `McrApiClient`, añade identidad explícita al documento y amplía `McrIdempotency`. Crea un cliente técnico de migración con code `legacy`. Los documentos históricos reciben ese cliente; las identidades históricas se asocian con documento/submission cuando la relación puede demostrarse por `McrIdempotencyKey`. En ese caso heredan del documento `McrApiClientID` y `McrCompanyConfigID`, además de enlazar `McrDocumentID` y el primer submission histórico cuando existe.
 
-Auditoría read-only de la BD compartida antes de migrar: 23 claves idempotentes, todas únicas y no nulas; 17 documentos, sin números duplicados; 3 documentos sin clave; los 17 sin `McrSeriesID`; series F001 next=2 y B001 next=25, coherentes con máximos 1 y 24. Varias identidades históricas no tienen documento asociado. No se modificó ningún dato remoto.
+Una identidad que no pueda vincularse inequívocamente a un documento conserva `McrCompanyConfigID`, `McrDocumentID` y `McrSunatSubmissionID` en `NULL`. Conserva el cliente técnico `legacy` sólo como marca del origen de migración; éste no representa una empresa fiscal. La migración no consulta la primera empresa, empresa activa ni configuración default para completar datos históricos.
+
+Las columnas de identidad permanecen nullable únicamente para conservar esos registros históricos. Toda admisión nueva entra mediante `AdmissionContext`; `AdmitElectronicDocument` exige un cliente activo, una empresa activa y una serie activa perteneciente a esa empresa antes de insertar `McrIdempotency`, `McrDocument` o `McrSunatSubmission`. Por tanto, el dominio no crea operaciones nuevas incompletas aunque el esquema permita los `NULL` históricos.
+
+Auditoría read-only de la BD compartida antes de migrar: 23 claves idempotentes, todas únicas y no nulas; 14 pueden relacionarse inequívocamente con un documento y por ello tienen empresa demostrable; 9 quedan huérfanas; ninguna clave tiene más de un documento candidato. Existen 17 documentos, sin números duplicados; 3 documentos no tienen clave; los 17 tienen `McrSeriesID` nulo. Las series F001 next=2 y B001 next=25 son coherentes con máximos 1 y 24. Actualmente `McrCompanyConfig` contiene una empresa. No se modificó ningún dato remoto.
 
 El downgrade restaura las restricciones globales antiguas únicamente si no existen claves iguales entre scopes. Si ya hay solapamientos legítimos, aborta antes de tocar el esquema. Esto evita un rollback parcial/inconsistente.
 
@@ -61,6 +67,8 @@ El downgrade restaura las restricciones globales antiguas únicamente si no exis
 - `IX_McrDocument_CompanyStatus` soporta operación por empresa/estado.
 - `IX_McrIdempotency_Operation` permite reconstrucción documento/submission.
 - Los índices existentes cubren número documental, submission/estado y limpieza de idempotencia. No se agregó otro índice idéntico al UNIQUE parcial.
+
+PostgreSQL usa por defecto `NULLS DISTINCT` en una restricción UNIQUE: dos filas con el mismo cliente y key, pero `company_id = NULL`, no colisionan porque cada `NULL` se considera distinto. Esto es aceptable para identidades históricas huérfanas, que no participan en reconstrucción scoped de operaciones nuevas. No se añade una restricción artificial para ellas. Las nuevas admisiones siempre llevan empresa no nula por la validación del dominio y quedan protegidas por el UNIQUE `(client, company, key)` con la semántica scoped prevista.
 
 ## Archivos
 
@@ -76,10 +84,10 @@ Esta fase no implementa notas, GRE, retries SUNAT, outbox, webhooks, scopes ni a
 
 ## Pruebas ejecutadas
 
-- Suite normal SQLite: 40 passed, 7 pruebas PostgreSQL omitidas de forma explícita, 1 deprecación preexistente.
-- Suite completa PostgreSQL temporal: 47 passed, 213 assertions, 1 deprecación preexistente.
+- Suite normal SQLite: 40 passed, 159 assertions, 7 pruebas PostgreSQL omitidas de forma explícita, 1 deprecación preexistente.
+- Suite completa PostgreSQL temporal: 47 passed, 240 assertions, 1 deprecación preexistente.
 - Concurrencia real mediante procesos y conexiones independientes: 20 solicitudes con misma key/payload; conflicto simultáneo de key; 20 solicitudes con misma external reference y keys diferentes; conflicto simultáneo de external reference; 50 numeraciones concurrentes; y scopes simultáneos por cliente/empresa.
-- Migración con datos históricos: `up → down → up`, documento con correlativo 77, submission relacionada e identidad huérfana. Se verificaron FK, conservación de filas y los índices PostgreSQL reales.
+- Migración con datos históricos: `up → down → up`, dos empresas, documentos con correlativos 77 y 88, sus submissions e identidades asociables, más una identidad huérfana que conserva empresa nula. Se verificaron FK, conservación de filas, índices PostgreSQL reales y `NULLS DISTINCT` mediante una segunda key huérfana idéntica.
 - Se mantuvieron los tests de rollback de payload/submission/job, hash del snapshot, ejecución del job serializado, resultados SUNAT y garantía contra el pipeline eliminado.
 
 No se realizaron llamadas a SUNAT, no se arrancaron workers sobre la BD compartida y no se aplicaron migraciones remotas.

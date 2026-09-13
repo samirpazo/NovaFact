@@ -200,12 +200,16 @@ it('applies and reverses the pipeline migration on the isolated schema', functio
         ->and(\App\Models\Empresa::count())->toBe(1);
 });
 
-it('has exactly one executable admission and processing path for invoices and receipts', function () {
+it('has exactly one executable admission and processing path for invoices receipts and notes', function () {
     expect(file_exists(app_path('Jobs/EmitFacturaJob.php')))->toBeFalse()
         ->and(file_exists(app_path('Actions/Facturacion/EmitFacturaAction.php')))->toBeFalse()
         ->and(file_exists(app_path('Services/Documents/LegacyBillingCallback.php')))->toBeFalse()
         ->and(method_exists(\App\Services\Facturacion\FacturaService::class, 'emitir'))->toBeFalse()
-        ->and(file_exists(app_path('Services/Facturacion/McrPersistenceService.php')))->toBeFalse();
+        ->and(file_exists(app_path('Services/Facturacion/McrPersistenceService.php')))->toBeFalse()
+        ->and(file_exists(app_path('Jobs/EmitCreditNoteJob.php')))->toBeFalse()
+        ->and(file_exists(app_path('Jobs/EmitDebitNoteJob.php')))->toBeFalse()
+        ->and(file_exists(app_path('Actions/EmitCreditNoteAction.php')))->toBeFalse()
+        ->and(file_exists(app_path('Actions/EmitDebitNoteAction.php')))->toBeFalse();
 
     $creationSites = collect(new RecursiveIteratorIterator(new RecursiveDirectoryIterator(app_path())))
         ->filter(fn (SplFileInfo $file) => $file->isFile() && $file->getExtension() === 'php')
@@ -285,7 +289,7 @@ it('requires a configured active series and never auto creates one', function ()
     expect(fn () => app(AdmitElectronicDocument::class)->execute(pipelineContext(), pipelinePayload()))
         ->toThrow(UnprocessableEntityHttpException::class);
     expect(McrDocument::count())->toBe(0)->and(DB::table('McrIdempotency')->count())->toBe(0)
-        ->and(DB::table('McrSeries')->count())->toBe(2);
+        ->and(DB::table('McrSeries')->count())->toBe(6);
 });
 
 it('exposes idempotent reconstruction and conflicts through the legacy HTTP facade', function () {

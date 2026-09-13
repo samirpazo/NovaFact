@@ -17,19 +17,19 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class AdmitElectronicDocument
 {
-    public function __construct(private SalesPayloadNormalizer $normalizer) {}
+    public function __construct(private SalesPayloadNormalizer $normalizer, private NoteReferenceResolver $noteReferences) {}
 
     public function execute(AdmissionContext $context, array $payload): AdmissionResult
     {
-        $canonicalRequest = $this->normalizer->request($payload);
-
         try {
-            return DB::transaction(function () use ($context, $canonicalRequest): AdmissionResult {
+            return DB::transaction(function () use ($context, $payload): AdmissionResult {
                 $client = McrApiClient::whereKey($context->clientId)->where('McrIsActive', true)->where('SecStatus', true)->first();
                 $company = Empresa::whereKey($context->companyId)->where('McrIsActive', true)->where('SecStatus', true)->first();
                 if (! $client || ! $company) {
                     throw new UnprocessableEntityHttpException('Client and company must be active before admission.');
                 }
+
+                $canonicalRequest = $this->normalizer->request($this->noteReferences->resolve($company, $payload));
 
                 $series = $this->resolveConfiguredSeries($company, $canonicalRequest);
                 $canonicalRequest['serie'] = $series->McrSeriesCode;
@@ -86,6 +86,7 @@ class AdmitElectronicDocument
                     'CreateDate' => now(),
                 ]);
                 $this->storeLines($document, $data, (float) $processingPayload['igvRate']);
+                $this->storeReference($document, $processingPayload);
                 DB::table('McrDocumentPayload')->insert([
                     'McrDocumentID' => $document->getKey(),
                     'McrPayload' => $json,
@@ -118,6 +119,12 @@ class AdmitElectronicDocument
             if (! $this->isAdmissionIdentityViolation($exception)) {
                 throw $exception;
             }
+
+            $company = Empresa::find($context->companyId);
+            if (! $company) {
+                throw $exception;
+            }
+            $canonicalRequest = $this->normalizer->request($this->noteReferences->resolve($company, $payload));
 
             return $this->resolveConcurrentWinner($context, $canonicalRequest);
         }
@@ -232,5 +239,30 @@ class AdmitElectronicDocument
                 'CreateDate' => now(),
             ]);
         }
+    }
+
+    private function storeReference(McrDocument $document, array $payload): void
+    {
+        $reference = $payload['reference'] ?? null;
+        if (! is_array($reference)) {
+            return;
+        }
+        DB::table('McrDocumentReference')->insert([
+            'McrDocumentID' => $document->getKey(),
+            'ReferencedMcrDocumentID' => $reference['document_id'] ?? null,
+            'McrReferenceType' => $reference['kind'] === 'internal' ? 'internal_document' : 'external_document',
+            'McrIsExternal' => $reference['kind'] === 'external',
+            'McrReferencedDocumentType' => $reference['document_type'],
+            'McrReferencedNumber' => $reference['series'].'-'.$reference['correlative'],
+            'McrReferencedSeriesCode' => $reference['series'],
+            'McrReferencedCorrelative' => $reference['correlative'],
+            'McrReferencedIssueDate' => $reference['issue_date'],
+            'McrReferencedCurrencyCode' => $reference['currency'],
+            'McrReferencedCustomerDocumentType' => $reference['customer_document_type'],
+            'McrReferencedCustomerDocumentNumber' => $reference['customer_document_number'],
+            'McrReasonCode' => $reference['reason_code'],
+            'McrReason' => $reference['reason'],
+            'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now(),
+        ]);
     }
 }

@@ -52,12 +52,6 @@ return new class extends Migration
 
         DB::table('McrDocument')->whereNull('McrApiClientID')->update(['McrApiClientID' => $legacyClientId]);
         DB::table('McrIdempotency')->whereNull('McrApiClientID')->update(['McrApiClientID' => $legacyClientId]);
-        $firstCompanyId = DB::table('McrCompanyConfig')->orderBy('McrCompanyConfigID')->value('McrCompanyConfigID');
-        if ($firstCompanyId !== null) {
-            DB::table('McrIdempotency')->whereNull('McrCompanyConfigID')->update([
-                'McrCompanyConfigID' => $firstCompanyId,
-            ]);
-        }
 
         DB::table('McrIdempotency')->whereNotNull('McrKey')->chunkById(500, function ($identities): void {
             foreach ($identities as $identity) {
@@ -68,6 +62,7 @@ return new class extends Migration
                 $submissionId = DB::table('McrSunatSubmission')->where('McrDocumentID', $document->McrDocumentID)
                     ->orderBy('McrSunatSubmissionID')->value('McrSunatSubmissionID');
                 DB::table('McrIdempotency')->where('McrIdempotencyID', $identity->McrIdempotencyID)->update([
+                    'McrApiClientID' => $document->McrApiClientID,
                     'McrCompanyConfigID' => $document->McrCompanyConfigID,
                     'McrDocumentID' => $document->McrDocumentID,
                     'McrSunatSubmissionID' => $submissionId,

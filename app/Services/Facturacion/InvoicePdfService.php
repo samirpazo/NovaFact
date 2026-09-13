@@ -10,6 +10,7 @@ use BaconQrCode\Writer;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Greenter\Model\Sale\Invoice;
+use Greenter\Model\Sale\Note;
 use Greenter\Report\HtmlReport;
 use Illuminate\Support\Facades\Storage;
 
@@ -52,7 +53,7 @@ class InvoicePdfService
         return $pdf->output();
     }
 
-    public function generate(Invoice $invoice, ?string $filename = null): array
+    public function generate(Invoice|Note $invoice, ?string $filename = null): array
     {
         $htmlReport = new HtmlReport;
         $htmlReport->setTemplate('invoice.html.twig');
