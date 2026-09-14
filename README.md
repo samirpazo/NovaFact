@@ -1,59 +1,92 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SunFacturation
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Microservicio de facturación electrónica para Nova. Admite facturas (`01`) y boletas (`03`) mediante un único pipeline: admisión idempotente, procesamiento asíncrono, emisión hacia SUNAT, generación de artefactos y notificación webhook al consumidor.
 
-## About Laravel
+## Arquitectura operativa
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+```text
+Nova Restaurante → SunFacturation API (:8081) → PostgreSQL + cola documents
+                                      ↓
+                         ProcessElectronicDocumentJob
+                                      ↓
+                   Outbox → webhooks:dispatch → DeliverWebhookJob
+                                      ↓
+             Nova /api/integrations/sunfacturation/webhook
+```
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+PostgreSQL es el motor de referencia. SQLite queda reservado para pruebas rápidas que no dependan de semántica específica del motor. Migraciones, índices, constraints, concurrencia, locks, transacciones, JSONB y webhooks deben validarse con PostgreSQL real.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Servicios locales
 
-## Learning Laravel
+Para una demo integrada se ejecutan cinco procesos: frontend Nova (`:3000`), backend Nova (`:8080`), SunFacturation HTTP (`:8081`), worker de documentos y scheduler de Laravel.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```bash
+# SunFacturation HTTP
+cd /Users/edinson/Documents/Desarrollo/sunfacturation-main
+php artisan serve --host=127.0.0.1 --port=8081
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# Worker: documentos y webhooks
+php artisan queue:work documents --queue=default --tries=1 --timeout=60 --sleep=1 --verbose
 
-## Laravel Sponsors
+# Outbox y reconciliación
+php artisan schedule:work
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+# Nova API
+cd /Users/edinson/Documents/Desarrollo/Nova
+dotnet run --project NovaApi --launch-profile http
 
-### Premium Partners
+# Nova frontend
+cd /Users/edinson/Documents/Desarrollo/Nova/nova-web
+npm run dev
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+El scheduler ejecuta `webhooks:dispatch --limit=100` cada minuto y `billing:reconcile --limit=100` cada cinco minutos. El worker procesa `ProcessElectronicDocumentJob` y `DeliverWebhookJob`.
 
-## Contributing
+El destino loopback (`WEBHOOK_ALLOW_UNSAFE_LOCAL=true`) solo debe habilitarse en desarrollo. En entornos compartidos o productivos se debe usar HTTPS y un destino autorizado.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Flujo de emisión
 
-## Code of Conduct
+Nova solicita la admisión con `Idempotency-Key` y `external_reference`. SunFacturation reserva serie y correlativo dentro de una transacción, persiste el documento y encola el job estándar.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Cuando el documento es aceptado, genera XML, CDR y PDF, publica `document.accepted` en `McrOutboxEvent` y lo entrega al webhook de Nova. Nova aplica el evento mediante `RstBillingWebhookEvent`, actualiza `RstSale` y conserva la versión de estado fiscal.
 
-## Security Vulnerabilities
+La pantalla de ventas no consulta continuamente ni usa polling o SignalR para este estado. El usuario recarga la página cuando desea ver cambios. Los endpoints PDF, XML y CDR recuperan las rutas de la submission si el webhook solo informó la disponibilidad de los artefactos.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## PostgreSQL
 
-## License
+La conexión debe alinear la zona horaria de PHP y PostgreSQL:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```dotenv
+DB_CONNECTION=pgsql
+DB_TIMEZONE=America/Lima
+```
+
+No registrar credenciales reales en este archivo ni en el repositorio. Usar `.env` local o un gestor de secretos.
+
+## Verificación rápida
+
+```bash
+curl -I http://127.0.0.1:8081/
+curl -I http://127.0.0.1:8080/swagger/index.html
+curl -I http://127.0.0.1:3000/restaurant/sale/
+php artisan webhooks:dispatch --limit=100
+```
+
+Para comprobar una venta, validar en `RstSale` el estado `accepted`, `SalBillingDocumentID`, `SalBillingSubmissionID`, `SalInvoiceNumber` y los flags de PDF/XML/CDR. Los duplicados se controlan por `external_reference`, idempotencia y deduplicación del outbox.
+
+## Pruebas
+
+```bash
+php artisan test
+PIPELINE_TEST_POSTGRES=1 php artisan test
+```
+
+Las pruebas que dependen de PostgreSQL deben ejecutarse contra una instancia PostgreSQL real; una suite verde únicamente en SQLite no es suficiente para validar persistencia.
+
+## Documentación adicional
+
+- `docs/architecture/`: decisiones y fases de arquitectura.
+- `docs/postman/`: colección de integración HTTP.
+- `/docs`: documentación visual de la API.
