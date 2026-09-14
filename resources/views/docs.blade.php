@@ -1,24 +1,39 @@
 <!doctype html>
 <html lang="es">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Nova Facturación · Documentación</title>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nova Facturación · Documentación API</title>
     <style>
-        :root { color-scheme: dark; --blue: #002aff; }
-        body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: Inter, Arial, sans-serif; background: #0b1020; color: #f5f7ff; }
-        main { width: min(680px, calc(100% - 40px)); padding: 40px; border: 1px solid #26345f; border-radius: 18px; background: #121a30; box-shadow: 0 20px 60px #0006; }
-        h1 { margin-top: 0; color: #6f8cff; } a { color: #9db0ff; } code { color: #b8c6ff; }
+        :root{color-scheme:dark;--bg:#090d18;--panel:#141a28;--line:#2a354b;--ink:#f4f6fb;--muted:#a6afc0;--blue:#315cff;--green:#77e0b2}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#1d2b5a 0,transparent 36%),var(--bg);color:var(--ink);font:15px/1.6 Inter,system-ui,sans-serif}a{color:#a9bcff;text-decoration:none}a:hover{text-decoration:underline}.bar{height:72px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 max(24px,calc((100% - 1180px)/2));gap:14px;background:#111621ee;backdrop-filter:blur(14px);position:sticky;top:0;z-index:2}.logo{width:38px;height:38px}.brand{font-size:21px;font-weight:750;letter-spacing:-.04em}.brand em{color:#4d72ff;font-style:normal}.layout{width:min(1180px,calc(100% - 42px));margin:auto;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px;padding:46px 0 80px}.toc{position:sticky;top:112px;height:max-content}.toc small{color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700}.toc nav{display:grid;gap:8px;margin-top:16px;border-left:1px solid var(--line);padding-left:15px}.toc a{color:var(--muted);font-size:14px}.toc a:hover{color:var(--ink)}.hero{display:grid;grid-template-columns:1fr 310px;gap:28px;align-items:center}.eyebrow{color:var(--green);font-weight:750;font-size:12px;letter-spacing:.13em;text-transform:uppercase}h1{font-size:clamp(38px,6vw,64px);line-height:1.02;letter-spacing:-.07em;margin:14px 0}h2{font-size:28px;letter-spacing:-.04em;margin:62px 0 16px}h3{font-size:17px;margin:25px 0 7px}p{color:var(--muted);max-width:760px}.lead{font-size:18px}.terminal{background:#0c111e;border:1px solid var(--line);border-radius:14px;padding:18px;color:#c7d4ff;box-shadow:0 18px 45px #0005}code,pre{font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace}code{color:#cbd7ff}.terminal .method{color:var(--green);font-weight:800}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:35px 0}.card{background:linear-gradient(145deg,var(--panel),#101622);border:1px solid var(--line);border-radius:13px;padding:18px}.card strong{display:block;font-size:17px;margin-bottom:5px}.card span{color:var(--muted)}.endpoint{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:13px 0}.endpoint header{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center}.verb{font:800 11px ui-monospace;color:#071118;background:var(--green);border-radius:5px;padding:3px 7px}.verb.get{background:#8fa8ff}.endpoint p{padding:0 16px}.endpoint pre{margin:0;padding:15px 16px;background:#0b101b;overflow:auto;color:#c9d5f7;border-top:1px solid #202d45}.note{border-left:3px solid var(--blue);background:#101a32;padding:13px 16px;margin:18px 0;color:var(--muted)}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}td{color:var(--muted)}.pill{display:inline-block;border:1px solid #3a527c;border-radius:99px;padding:1px 8px;color:#c5d4ff;font-size:12px;margin:2px}@media(max-width:800px){.layout{display:block;width:min(100% - 28px,700px);padding-top:28px}.toc{position:static}.toc nav{display:flex;flex-wrap:wrap;border:0;border-bottom:1px solid var(--line);padding:0 0 16px;margin-bottom:30px;gap:8px 16px}.hero{display:block}.terminal{margin-top:25px}.cards{grid-template-columns:1fr}h2{margin-top:44px}}
     </style>
 </head>
-<body><main>
-    <h1>Nova Facturación Electrónica</h1>
-    <p>Microservicio para emisión y consulta de comprobantes electrónicos.</p>
-    <h2>API</h2>
-    <p><code>POST /api/facturacion/emitir-factura</code></p>
-    <p><code>GET /api/facturacion/submissions/{submissionId}</code></p>
-    <p><code>GET /api/facturacion/archivo/{tipo}/{nombre}</code></p>
-    <p>Consulta la colección de Postman incluida en <code>docs/postman</code>.</p>
-    <p><a href="/">← Volver al inicio</a></p>
-</main></body>
-</html>
+<body>
+<header class="bar"><img class="logo" src="{{ asset('logo-nova.svg') }}" alt="Nova"><div class="brand">Nova <em>Facturación</em></div><span style="margin-left:auto;color:var(--muted)">API v1 · PostgreSQL</span></header>
+<div class="layout"><aside class="toc"><small>En esta guía</small><nav><a href="#inicio">Visión general</a><a href="#auth">Autenticación</a><a href="#admitir">Admisión</a><a href="#estados">Estados</a><a href="#archivos">Archivos</a><a href="#webhooks">Webhooks</a><a href="#operar">Operación</a><a href="#rutas">Rutas</a></nav><p><a href="/">← Volver al inicio</a></p></aside>
+<main><section id="inicio" class="hero"><div><div class="eyebrow">Infraestructura fiscal para Perú</div><h1>Emisión confiable, estados trazables.</h1><p class="lead">Admite comprobantes, procesa SUNAT en segundo plano y conserva cada transición con idempotencia, correlativos protegidos y recuperación operativa.</p></div><pre class="terminal"><span class="method">POST</span> /api/facturacion/emitir-factura
+
+{ "tipoDoc": "03",
+  "external_reference": "RST-SALE-42",
+  "mtoTotal": 118.00 }
+
+→ 202 { "status": "queued" }</pre></section>
+<div class="cards"><div class="card"><strong>01 · Factura</strong><span>RUC, razón social y serie activa.</span></div><div class="card"><strong>03 · Boleta</strong><span>DNI o consumidor final.</span></div><div class="card"><strong>Outbox durable</strong><span>Webhooks con retries y DLQ.</span></div></div>
+<section id="auth"><h2>Autenticación y scope</h2><p>Las rutas requieren token válido y un cliente asociado a la empresa emisora.</p><table><tr><th>Header</th><th>Propósito</th></tr><tr><td><code>Authorization: Bearer …</code></td><td>Acceso API</td></tr><tr><td><code>X-Client-Code</code></td><td>Cliente registrado</td></tr><tr><td><code>X-Company-Id</code></td><td>Empresa fiscal</td></tr><tr><td><code>Idempotency-Key</code></td><td>Retry seguro de la misma operación</td></tr></table></section>
+<section id="admitir"><h2>Admisión y procesamiento</h2><div class="endpoint"><header><span class="verb">POST</span><code>/api/facturacion/emitir-factura</code></header><p>Acepta documentos <code>01</code> y <code>03</code>. La admisión reserva el correlativo dentro de una transacción y encola <code>ProcessElectronicDocumentJob</code>.</p><pre>{
+  "tipoDoc": "03", "fechaEmision": "2026-09-13T12:00:00",
+  "tipoMoneda": "PEN", "clientTipoDoc": "1", "clientNumDoc": "12345678",
+  "clientRznSocial": "CLIENTE DEMO", "mtoOperGravada": 100.00,
+  "mtoIGV": 18.00, "mtoTotal": 118.00, "igvRate": 18.00,
+  "external_reference": "RST-SALE-42", "items": []
+}</pre></div><div class="note"><strong>Idempotencia:</strong> Nova debe conservar <code>RST-SALE-{SalID}-{tipoDoc}</code> como clave y <code>RST-SALE-{SalID}</code> como referencia externa.</div></section>
+<section id="estados"><h2>Estados fiscales</h2><div class="endpoint"><header><span class="verb get">GET</span><code>/api/facturacion/submissions/{submissionId}</code></header><p>Devuelve número, error, <code>state_version</code> y disponibilidad de artefactos.</p></div><table><tr><th>Estado</th><th>Significado</th></tr><tr><td><span class="pill">queued</span><span class="pill">processing</span></td><td>Trabajo en curso.</td></tr><tr><td><span class="pill">awaiting_sunat</span></td><td>Resultado remoto pendiente.</td></tr><tr><td><span class="pill">accepted</span><span class="pill">accepted_with_observations</span></td><td>Aceptado fiscalmente.</td></tr><tr><td><span class="pill">reconciliation_pending</span><span class="pill">manual_review</span></td><td>Requiere reconciliación o revisión.</td></tr><tr><td><span class="pill">rejected</span><span class="pill">failed</span></td><td>Terminales distintos; no revierten la venta.</td></tr></table></section>
+<section id="archivos"><h2>PDF, XML, CDR y ticket</h2><div class="cards"><div class="card"><strong>Archivos</strong><span><code>GET /api/facturacion/archivo/{tipo}/{nombre}</code></span></div><div class="card"><strong>Ticket 80mm</strong><span><code>GET /api/facturacion/documentos/{documentId}/ticket-80mm</code></span></div><div class="card"><strong>Disponibilidad</strong><span>Puede llegar después de la aceptación.</span></div></div></section>
+<section id="webhooks"><h2>Webhooks</h2><p>El outbox entrega cambios a Nova con firma HMAC y protección contra replay.</p><div class="endpoint"><header><span class="verb">POST</span><code>/api/integrations/sunfacturation/webhook</code></header><pre>X-SunFacturation-Event-Id: evt_…
+X-SunFacturation-Timestamp: 1726250000
+X-SunFacturation-Signature: v1=&lt;hex&gt;</pre></div><p>Eventos duplicados por <code>event_id</code> son idempotentes; una versión mayor prevalece.</p></section>
+<section id="operar"><h2>Operación</h2><pre class="terminal">php artisan migrate --force
+php artisan serve --host=127.0.0.1 --port=8081
+php artisan queue:work documents --queue=default --tries=1 --timeout=60
+php artisan webhooks:status
+php artisan billing:reconcile --limit=100</pre><div class="note"><strong>Pruebas:</strong> usa <code>SUNAT_PRODUCTION=false</code> y PostgreSQL. SQLite solo aplica a lógica que no dependa del motor.</div></section>
+<section id="rutas"><h2>Rutas adicionales</h2><div class="grid"><div class="card"><strong>Configuración</strong><span><code>GET/PUT /api/facturacion/configuracion/empresa</code><br><code>PUT /api/facturacion/configuracion/empresa/series</code></span></div><div class="card"><strong>Boletas</strong><span><code>POST /api/facturacion/boletas/resumen-diario</code><br><code>GET /api/facturacion/boletas/resumen/{ticket}</code></span></div><div class="card"><strong>Webhooks</strong><span><code>/api/webhooks/subscriptions</code><br>Crear, rotar y redeliver.</span></div></div><p><a href="/">Inicio</a> · <a href="/docs/postman">Colección Postman</a></p></section></main></div></body></html>

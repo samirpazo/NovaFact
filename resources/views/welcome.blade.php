@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" x-data="{ darkMode: (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) }" :class="{ 'dark': darkMode }">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark" x-data="{ darkMode: true }">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -176,6 +176,8 @@
 
             .logo span { color: var(--primary); }
 
+            .logo-mark { width: 40px; height: 40px; object-fit: contain; }
+
             .nav-links {
                 display: flex;
                 gap: 12px;
@@ -206,6 +208,7 @@
                 border-radius: 8px;
                 display: flex;
                 color: inherit;
+                display: none;
             }
 
             /* Hero Section - Mobile First */
@@ -300,6 +303,13 @@
                 width: 100%;
                 filter: drop-shadow(0 20px 40px rgba(0,0,0,0.1));
             }
+
+            .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+            .proof-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 38px; }
+            .proof-item { padding: 16px 18px; border-left: 2px solid var(--primary); background: rgba(0,42,255,.06); border-radius: 0 12px 12px 0; }
+            .proof-item strong { display: block; font-size: 1.1rem; }
+            .proof-item span { font-size: .85rem; opacity: .68; }
+            @media (max-width: 640px) { .proof-strip { grid-template-columns: 1fr; } }
         </style>
     </head>
     <body :class="{ 'dark': darkMode }" style="position: relative; min-height: 100vh; overflow-x: hidden;">
@@ -311,17 +321,12 @@
         <!-- Navigation -->
         <nav class="nav-container glass">
             <a href="/" class="logo">
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="40" height="40" rx="12" fill="var(--primary)"/>
-                    <path d="M12 28V12H28V16H16V28H12Z" fill="white"/>
-                    <path d="M20 28V20H28V28H20Z" fill="white" opacity="0.6"/>
-                </svg>
+                <img class="logo-mark" src="{{ asset('logo-nova.svg') }}" alt="Nova">
                 Nova <span>Facturación</span>
             </a>
 
             <div class="nav-links">
-                <a href="/docs" class="nav-link">Documentación</a>
-                <a href="#" class="nav-link">Soporte</a>
+                <a href="/docs" class="btn-primary" style="padding: 8px 18px; border-radius: 10px;">Explorar la API</a>
                 
                 @if (Route::has('login'))
                     <div class="flex items-center gap-4">
@@ -361,13 +366,13 @@
                         Emisión de Comprobantes</h1>
                     <p>La infraestructura API más robusta para facturación electrónica y guías de remisión en Perú. Integración sencilla, validación instantánea y alta disponibilidad.</p>
                     
-                    <!-- <div class="hero-actions">
+                    <div class="hero-actions">
                         <a href="/docs" class="btn-primary">
                             Explorar la API
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                         </a>
-                        <a href="#features" class="btn-outline">Ver planes</a>
-                    </div> -->
+                        <a href="#features" class="btn-outline">Conocer capacidades</a>
+                    </div>
                 </div>
 
                 <div class="hero-image animate-fade-up animate-delay-1" style="width: 100%; max-width: 100%; overflow: hidden;">
@@ -393,6 +398,12 @@
                         </code>
                     </div>
                 </div>
+            </section>
+
+            <section class="proof-strip" aria-label="Capacidades operativas">
+                <div class="proof-item"><strong>01 · 03</strong><span>Factura y boleta listas para integrar</span></div>
+                <div class="proof-item"><strong>Idempotencia</strong><span>Retries seguros sin comprobantes duplicados</span></div>
+                <div class="proof-item"><strong>Estado trazable</strong><span>De admisión a resultado terminal</span></div>
             </section>
 
             <!-- Features -->
