@@ -81,7 +81,7 @@ it('records a technical exception as failed without exposing exception secrets',
     $resolver = Mockery::mock(DocumentProcessorResolver::class);
     $resolver->shouldReceive('resolve')->andThrow(new RuntimeException('access_token=do-not-persist'));
     (new ProcessElectronicDocumentJob($doc->getKey(), $operation['submission_id']))->handle($resolver, app(DocumentLifecycle::class));
-    expect($doc->fresh()->McrStatus)->toBe('failed')
+    expect($doc->fresh()->McrStatus)->toBe('retry_pending')
         ->and(DB::table('McrSunatSubmission')->value('McrError'))->not->toContain('do-not-persist');
 });
 
@@ -92,7 +92,7 @@ it('refuses payload tampering before contacting the processor', function () {
     $resolver = Mockery::mock(DocumentProcessorResolver::class);
     $resolver->shouldNotReceive('resolve');
     (new ProcessElectronicDocumentJob($doc->getKey(), $operation['submission_id']))->handle($resolver, app(DocumentLifecycle::class));
-    expect($doc->fresh()->McrStatus)->toBe('failed');
+    expect($doc->fresh()->McrStatus)->toBe('manual_review');
 });
 
 it('does not claim a document twice while processing', function () {
@@ -115,8 +115,8 @@ it('marks interrupted workers as failed without resending', function () {
     $id = McrDocument::firstOrFail()->getKey();
     app(DocumentLifecycle::class)->claim($id, $op['submission_id']);
     (new ProcessElectronicDocumentJob($id, $op['submission_id']))->failed(new RuntimeException('timeout'));
-    expect(McrDocument::find($id)->McrStatus)->toBe('failed')
-        ->and(DB::table('McrSunatAttempt')->value('McrStatus'))->toBe('failed');
+    expect(McrDocument::find($id)->McrStatus)->toBe('retry_pending')
+        ->and(DB::table('McrSunatAttempt')->value('McrStatus'))->toBe('retry_pending');
 });
 
 it('runs the actual resolver processor mapper and persisted signed transport with no real SUNAT calls', function (string $type) {

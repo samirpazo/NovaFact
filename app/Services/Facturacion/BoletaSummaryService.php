@@ -11,9 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class BoletaSummaryService
 {
-    public function send(string $date): array
+    public function send(string $date, \App\Models\Empresa $company): array
     {
-        $company = app(\App\Repositories\EmpresaRepository::class)->getActive();
         $docs = McrDocument::where('McrCompanyConfigID', $company->getKey())->where('McrDocumentType', '03')->whereIn('McrStatus', ['accepted', 'accepted_with_observations'])->whereDate('McrIssueDate', $date)->get();
         if ($docs->isEmpty()) {
             return ['success' => false, 'message' => 'No hay boletas aceptadas para la fecha indicada.'];
@@ -29,10 +28,10 @@ class BoletaSummaryService
             $details[] = (new SummaryDetail)->setTipoDoc('03')->setSerieNro($doc->McrSeriesCode.'-'.$doc->McrCorrelative)->setClienteTipo($doc->McrCustomerDocumentType)->setClienteNro($doc->McrCustomerDocumentNumber)->setEstado('1')->setTotal((float) $doc->McrTotalAmount)->setMtoOperGravadas($taxable)->setMtoIGV((float) $doc->McrTaxAmount)->setPorcentajeIgv($rate);
         }
         $summary->setDetails($details);
-        $xml = app(\App\Services\Sunat\GreenterService::class)->getXml($summary);
+        $xml = app(\App\Services\Sunat\GreenterService::class)->getXml($summary, $company);
         $name = $summary->getName();
         app(\App\Services\Sunat\XmlService::class)->save($xml, $name.'.xml');
-        $result = app(\App\Services\Sunat\GreenterService::class)->send($summary);
+        $result = app(\App\Services\Sunat\GreenterService::class)->send($summary, $company);
         DB::table('McrDailySummary')->insert(['McrCompanyConfigID' => $company->getKey(), 'McrReferenceDate' => $date, 'McrIssueDate' => date('Y-m-d'), 'McrCorrelative' => $correlative, 'McrStatus' => 'sent', 'McrXmlPath' => 'facturacion/xml/'.$name.'.xml', 'McrTicket' => $result->getTicket(), 'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now()]);
 
         return ['success' => true, 'ticket' => $result->getTicket(), 'summary' => $name, 'documents' => $docs->count()];

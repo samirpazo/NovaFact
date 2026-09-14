@@ -105,6 +105,7 @@ class AdmitElectronicDocument
                     'McrTransport' => $isDespatch ? 'gre_rest' : 'soap',
                     'McrAttemptNumber' => 0,
                     'McrStatus' => DocumentState::Created->value,
+                    'McrCheckpoint' => \App\Enums\ProcessingCheckpoint::Admitted->value,
                     'SecStatus' => true,
                     'CreateUserId' => 0,
                     'CreateDate' => now(),

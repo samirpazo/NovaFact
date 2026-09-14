@@ -244,28 +244,37 @@ class FacturacionController extends Controller
     public function resumenBoletas(Request $request, \App\Services\Facturacion\BoletaSummaryService $service): JsonResponse
     {
         $request->validate(['fecha' => ['required', 'date_format:Y-m-d']]);
+        $company = $this->fiscalCompany($request);
         try {
-            return response()->json($service->send($request->string('fecha')->toString()));
+            return response()->json($service->send($request->string('fecha')->toString(), $company));
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => 'No se pudo enviar el resumen de boletas', 'error' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'No se pudo enviar el resumen de boletas'], 500);
         }
     }
 
     public function baja(Request $request, \App\Services\Facturacion\VoidedDocumentService $service): JsonResponse
     {
         $data = $request->validate(['tipoDoc' => ['nullable', 'in:01,03'], 'numero' => ['required', 'regex:/^[A-Z0-9]{4}-[0-9]+$/'], 'fecha' => ['required', 'date_format:Y-m-d'], 'motivo' => ['required', 'string', 'max:500']]);
+        $company = $this->fiscalCompany($request);
         try {
-            return response()->json($service->send($data));
+            return response()->json($service->send($data, $company));
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => 'No se pudo enviar la baja', 'error' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'message' => 'No se pudo enviar la baja'], 500);
         }
     }
 
-    public function estadoResumen(string $ticket, \App\Services\Sunat\GreenterService $service): JsonResponse
+    public function estadoResumen(Request $request, string $ticket, \App\Services\Sunat\GreenterService $service): JsonResponse
     {
-        $status = $service->getStatus($ticket);
+        $status = $service->getStatus($ticket, $this->fiscalCompany($request));
 
         return response()->json(['success' => $status->isSuccess(), 'ticket' => $ticket, 'code' => $status->getCode(), 'message' => $status->getError()?->getMessage()]);
+    }
+
+    private function fiscalCompany(Request $request): \App\Models\Empresa
+    {
+        $id = $request->header('X-Company-Id');
+        abort_unless(is_string($id) && ctype_digit($id), 422, 'X-Company-Id is required for fiscal operations.');
+        return \App\Models\Empresa::whereKey((int) $id)->where('McrIsActive', true)->where('SecStatus', true)->firstOrFail();
     }
 
     public function estadoEnvio(int $submissionId): JsonResponse
@@ -279,7 +288,12 @@ class FacturacionController extends Controller
             'success' => true,
             'submission_id' => $row->McrSunatSubmissionID,
             'document_id' => $row->McrDocumentID,
-            'status' => $row->McrStatus,
+            'status' => match ($row->McrStatus) {
+                'reconciliation_pending' => 'processing',
+                'manual_review' => 'failed',
+                default => $row->McrStatus,
+            },
+            'recovery_status' => in_array($row->McrStatus, ['reconciliation_pending', 'manual_review'], true) ? $row->McrStatus : null,
             'ticket' => $row->McrTicket,
             'error' => $row->McrError,
             'completed_at' => $row->McrCompletedAt,

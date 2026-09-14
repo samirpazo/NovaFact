@@ -80,13 +80,13 @@ it('persists exact XML ZIP PDF and ticket then schedules durable polling', funct
     Queue::fake(); $op=app(AdmitElectronicDocument::class)->execute(pipelineContext('process-'.$type),despatchPayload($type));
     $xml='<DespatchAdvice signed="yes">'.$type.'</DespatchAdvice>';
     $greenter=Mockery::mock(GreenterService::class); $greenter->shouldReceive('getXml')->once()->andReturn($xml); app()->instance(GreenterService::class,$greenter);
-    $pdf=Mockery::mock(DespatchPdfService::class); $pdf->shouldReceive('render')->once()->andReturn('%PDF fixture'); app()->instance(DespatchPdfService::class,$pdf);
+    $pdf=Mockery::mock(DespatchPdfService::class); $pdf->shouldNotReceive('render'); app()->instance(DespatchPdfService::class,$pdf);
     $transport=Mockery::mock(GreTransport::class); $transport->shouldReceive('send')->once()->withArgs(function($company,$name,$zip)use($xml,$type){
         $tmp=tempnam(sys_get_temp_dir(),'ziptest'); file_put_contents($tmp,$zip); $z=new ZipArchive; $z->open($tmp); $inside=$z->getFromName($name.'.xml'); $z->close(); unlink($tmp); return $inside===$xml && str_contains($name,'-'.$type.'-');
     })->andReturn(new GreSendResult('ticket-'.$type,'2026-09-13T12:01:00-05:00')); app()->instance(GreTransport::class,$transport);
     (new ProcessElectronicDocumentJob($op->documentId,$op->submissionId))->handle(app(DocumentProcessorResolver::class),app(DocumentLifecycle::class));
     $doc=McrDocument::findOrFail($op->documentId); expect($doc->McrStatus)->toBe('awaiting_sunat')->and($doc->McrSunatTicket)->toBe('ticket-'.$type)
-        ->and(Storage::disk('local')->get($doc->McrXmlPath))->toBe($xml)->and($doc->McrZipPath)->not->toBeNull()->and($doc->McrPdfPath)->not->toBeNull();
+        ->and(Storage::disk('local')->get($doc->McrXmlPath))->toBe($xml)->and($doc->McrZipPath)->not->toBeNull()->and($doc->McrPdfPath)->toBeNull();
     Queue::assertPushed(PollSunatSubmissionJob::class,fn($job)=>$job->submissionId===$op->submissionId);
 })->with(['09','31']);
 
@@ -95,6 +95,7 @@ it('continues from only persisted submission data and accepts after a pending po
     $transport->shouldReceive('poll')->once()->andReturn(new GrePollResult('98')); app()->instance(GreTransport::class,$transport); Queue::fake();
     (new PollSunatSubmissionJob($op->submissionId))->handle($transport,app(\App\Services\Sunat\GreCdrParser::class),app(DocumentLifecycle::class),app(\App\Services\Facturacion\ManagedFileService::class));
     expect(McrDocument::find($op->documentId)->McrStatus)->toBe('awaiting_sunat'); Queue::assertPushed(PollSunatSubmissionJob::class);
+    DB::table('McrSunatSubmission')->where('McrSunatSubmissionID',$op->submissionId)->update(['McrNextAttemptAt'=>now()->subSecond()]);
     $transport2=Mockery::mock(GreTransport::class); $transport2->shouldReceive('poll')->once()->andReturn(new GrePollResult('0',base64_encode(greCdrZip('0','Aceptada'))));
     (new PollSunatSubmissionJob($op->submissionId))->handle($transport2,app(\App\Services\Sunat\GreCdrParser::class),app(DocumentLifecycle::class),app(\App\Services\Facturacion\ManagedFileService::class));
     expect(McrDocument::find($op->documentId)->McrStatus)->toBe('accepted')->and(DB::table('McrSunatAttempt')->where('McrTransport','gre_poll')->count())->toBe(2);

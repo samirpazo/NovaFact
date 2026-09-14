@@ -12,6 +12,16 @@ SQLite puede mantenerse como apoyo para pruebas rápidas, unitarias o de lógica
 
 Esta regla rige las fases presentes y futuras del proyecto.
 
+## Ambigüedad y resultado fiscal
+
+Nunca se reenvía automáticamente una submission cuyo resultado remoto sea ambiguo. Desde que comienza el contacto con SUNAT, una interrupción sin respuesta verificable exige consulta/reconciliación o revisión manual. El texto de una excepción no constituye evidencia de que SUNAT no recibió el documento.
+
+El estado fiscal debe persistirse antes de generar artefactos secundarios. Un fallo de PDF, registro local o archivo auxiliar no cambia un documento aceptado a `failed` y nunca vuelve a emitirlo; sólo activa recuperación de artefactos usando el snapshot y el XML firmado exacto.
+
+Toda recuperación fiscal usa la empresa persistida en el documento/submission. No se permite seleccionar primera empresa, empresa activa global ni fallback implícito para certificados, SOL, OAuth, series, envío, polling o reconciliación.
+
+Las colas delayed mejoran latencia, pero no son la fuente de verdad del retry. La próxima acción, el checkpoint, los contadores y `NextAttemptAt` se persisten para que el reconciliador reconstruya la operación después de perder la cola o reiniciar workers.
+
 ## Documentos con ticket
 
 Cuando SUNAT responde con ticket, el documento entra en `awaiting_sunat` y cada consulta se ejecuta mediante un delayed job que transporta IDs y persiste su intento. Ningún request ni worker mantiene bucles de polling o usa `sleep()`; un resultado desconocido se conserva recuperable y nunca se clasifica como rechazo fiscal.

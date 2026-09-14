@@ -15,11 +15,11 @@ it('classifies CDR fiscal outcomes independently from transport success', functi
 })->with([
     ['0', [], DocumentState::Accepted], ['0', ['Observation'], DocumentState::AcceptedWithObservations],
     ['4001', [], DocumentState::AcceptedWithObservations], ['2335', [], DocumentState::Rejected],
-    [null, [], DocumentState::Failed], ['invalid', [], DocumentState::Failed],
+    [null, [], DocumentState::ReconciliationPending], ['invalid', [], DocumentState::ReconciliationPending],
 ]);
 
 it('does not classify a missing CDR as accepted', function () {
-    expect(ProcessingResult::fromBillResult((new BillResult)->setSuccess(true))->state)->toBe(DocumentState::Failed);
+    expect(ProcessingResult::fromBillResult((new BillResult)->setSuccess(true))->state)->toBe(DocumentState::ReconciliationPending);
 });
 
 it('rejects unsafe state transitions', function () {

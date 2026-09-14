@@ -16,6 +16,10 @@ class McrSunatSubmission extends Model
         'McrSentAt' => 'datetime',
         'McrCompletedAt' => 'datetime',
         'McrMetadata' => 'array',
+        'McrNextAttemptAt' => 'datetime',
+        'McrLastReconciledAt' => 'datetime',
+        'McrClaimedAt' => 'datetime',
+        'McrIsAmbiguous' => 'boolean',
     ];
 
     public function document(): BelongsTo

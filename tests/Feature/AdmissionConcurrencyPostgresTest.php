@@ -4,6 +4,24 @@ use App\Models\McrApiClient;
 use App\Models\McrDocument;
 use App\Services\Documents\AdmitElectronicDocument;
 use Illuminate\Support\Facades\DB;
+use App\Jobs\PollSunatSubmissionJob;
+use App\Services\Sunat\GreTransport;
+use App\Services\Sunat\GrePollResult;
+use App\Services\Sunat\GreSendResult;
+use App\Models\Empresa;
+
+final class RecoveryCountingTransport implements GreTransport
+{
+    public static string $path;
+    public function send(Empresa $company, string $name, string $zip): GreSendResult { throw new LogicException('send must not run'); }
+    public function poll(Empresa $company, string $ticket): GrePollResult
+    {
+        $handle=fopen(self::$path,'c+'); flock($handle,LOCK_EX); $count=(int)stream_get_contents($handle); rewind($handle);
+        ftruncate($handle,0); fwrite($handle,(string)($count+1)); fflush($handle); flock($handle,LOCK_UN); fclose($handle);
+        usleep(300000);
+        return new GrePollResult('98');
+    }
+}
 
 require_once __DIR__.'/../Support/PipelineDatabase.php';
 
@@ -361,6 +379,41 @@ it('migrates legacy data without changing documents and survives down then up', 
         'McrStatus' => 'processing', 'McrCreatedAt' => now(), 'McrUpdatedAt' => now(),
     ]);
     expect(DB::table('McrIdempotency')->where('McrKey', 'historical-orphan-001')->count())->toBe(2);
+});
+
+it('allows only one of two concurrent pollers to perform the remote action', function () {
+    $op=app(AdmitElectronicDocument::class)->execute(pipelineContext('concurrent-recovery'),despatchPayload())->toArray();
+    DB::table('McrDocument')->where('McrDocumentID',$op['document_id'])->update(['McrStatus'=>'awaiting_sunat']);
+    DB::table('McrSunatSubmission')->where('McrSunatSubmissionID',$op['submission_id'])->update([
+        'McrStatus'=>'awaiting_sunat','McrTicket'=>'durable-ticket','McrNextAttemptAt'=>now()->subSecond(),'McrClaimedAt'=>null,'McrClaimToken'=>null,
+    ]);
+    RecoveryCountingTransport::$path=sys_get_temp_dir().'/recovery-count-'.bin2hex(random_bytes(5)); file_put_contents(RecoveryCountingTransport::$path,'0');
+    $children=[];
+    foreach(range(1,2) as $_){ $pid=pcntl_fork(); if($pid===0){ DB::disconnect(config('database.default'));
+        (new PollSunatSubmissionJob($op['submission_id']))->handle(new RecoveryCountingTransport,app(\App\Services\Sunat\GreCdrParser::class),app(\App\Services\Documents\DocumentLifecycle::class),app(\App\Services\Facturacion\ManagedFileService::class)); exit(0); } $children[]=$pid; }
+    foreach($children as $pid) pcntl_waitpid($pid,$status); DB::disconnect(config('database.default'));
+    expect((int)file_get_contents(RecoveryCountingTransport::$path))->toBe(1)
+        ->and(DB::table('McrSunatAttempt')->where('McrTransport','gre_poll')->count())->toBe(1);
+    unlink(RecoveryCountingTransport::$path);
+});
+
+it('uses the recovery due index and preserves all six document types through recovery migration down up', function () {
+    foreach(['01','03','07','08','09','31'] as $index=>$type){
+        DB::table('McrDocument')->insert([
+            'McrCompanyConfigID'=>Empresa::value('McrCompanyConfigID'),'McrDocumentType'=>$type,'McrSeriesCode'=>match($type){'01'=>'F001','03'=>'B001','07'=>'FC01','08'=>'FD01','09'=>'T001',default=>'V001'},
+            'McrCorrelative'=>900+$index,'McrIssueDate'=>'2026-09-13','McrCurrencyCode'=>'PEN','McrCustomerDocumentType'=>'6',
+            'McrCustomerDocumentNumber'=>'20123456789','McrCustomerName'=>'Migration preservation','McrTotalAmount'=>0,'McrStatus'=>'accepted',
+            'SecStatus'=>true,'CreateUserId'=>0,'CreateDate'=>now(),
+        ]);
+    }
+    $before=DB::table('McrDocument')->where('McrCorrelative','>=',900)->orderBy('McrDocumentType')->get(['McrDocumentType','McrSeriesCode','McrCorrelative'])->toJson();
+    $migration=require database_path('migrations/2026_09_13_000400_add_fiscal_recovery.php'); $migration->down(); $migration->up();
+    $after=DB::table('McrDocument')->where('McrCorrelative','>=',900)->orderBy('McrDocumentType')->get(['McrDocumentType','McrSeriesCode','McrCorrelative'])->toJson();
+    DB::statement('SET enable_seqscan = off');
+    $plan=collect(DB::select('EXPLAIN SELECT * FROM "McrSunatSubmission" WHERE "McrStatus" = ? AND "McrNextAttemptAt" <= now()',['retry_pending']))
+        ->pluck('QUERY PLAN')->implode(' ');
+    DB::statement('SET enable_seqscan = on');
+    expect($after)->toBe($before)->and($plan)->toContain('IX_McrSunatSubmission_RecoveryDue');
 });
 
 it('migrates historical references across companies and enforces the internal reference FK', function () {

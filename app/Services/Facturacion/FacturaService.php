@@ -10,13 +10,17 @@ use Greenter\Model\Response\BillResult;
 use Greenter\Model\Sale\Invoice;
 use Greenter\Model\Sale\Legend;
 use Greenter\Model\Sale\SaleDetail;
+use App\Enums\ProcessingCheckpoint;
+use App\Exceptions\ClassifiedSubmissionException;
+use App\Services\Documents\SubmissionCheckpoint;
 
 class FacturaService
 {
     public function __construct(
         protected GreenterService $greenterService,
         protected InvoicePdfService $invoicePdfService,
-        protected ManagedFileService $managedFileService
+        protected ManagedFileService $managedFileService,
+        protected SubmissionCheckpoint $checkpoint,
     ) {}
 
     /** Process a reserved document without ever allocating another number. */
@@ -30,6 +34,7 @@ class FacturaService
         $data->serie = $document->McrSeriesCode;
         $data->correlativo = (string) $document->McrCorrelative;
         $invoice = $this->mapToInvoice($data, $company);
+        $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::XmlGenerated);
         $disk = \Illuminate\Support\Facades\Storage::disk('local');
         $name = $document->getKey().'-'.$invoice->getName();
         $xmlPath = 'facturacion/xml/'.$name.'.xml';
@@ -42,12 +47,20 @@ class FacturaService
             }
         }
         $document->update(['McrXmlPath' => $xmlPath]);
+        $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::XmlSigned);
         // Send exactly the signed bytes that were persisted, without signing twice.
-        $result = $this->greenterService->sendSignedXml(Invoice::class, $invoice->getName(), $xml, $company);
+        $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::SubmissionStarted, true);
+        try {
+            $result = $this->greenterService->sendSignedXml(Invoice::class, $invoice->getName(), $xml, $company);
+        } catch (\Throwable $exception) {
+            throw ClassifiedSubmissionException::ambiguous(ProcessingCheckpoint::SubmissionStarted, $exception);
+        }
+        $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::RemoteResponseReceived);
 
         // Durable response checkpoint precedes slow/local artifact work. A worker
         // timeout during PDF generation must preserve the known fiscal outcome.
         $document->update(['McrProcessingResult' => json_encode(\App\Services\Documents\ProcessingResult::fromBillResult($result)->toArray(), JSON_THROW_ON_ERROR)]);
+        $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::RemoteResultPersisted);
 
         // A PDF/GenFile failure after SUNAT answered must never trigger a resend.
         try {
@@ -68,6 +81,7 @@ class FacturaService
                 $document->update(['McrPdfPath' => $pdf['path']]);
                 $document->update(['McrPdfFilID' => $this->managedFileService->register($pdf['path'], $name.'.pdf', 'application/pdf')]);
             }
+            $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::ArtifactsGenerated);
         } catch (\Throwable $e) {
             $document->update(['McrArtifactError' => 'Artifact generation or registration failed; rebuild locally without resending to SUNAT.']);
             \Illuminate\Support\Facades\Log::error('document.artifact.failed', [
@@ -76,6 +90,18 @@ class FacturaService
         }
 
         return $result;
+    }
+
+    public function recoverArtifacts(\App\Models\McrDocument $document, FacturaData $data): void
+    {
+        $company = \App\Models\Empresa::findOrFail($document->McrCompanyConfigID);
+        $data->serie = $document->McrSeriesCode; $data->correlativo = (string) $document->McrCorrelative;
+        $invoice = $this->mapToInvoice($data, $company); $name = $document->getKey().'-'.$invoice->getName();
+        $document->update(['McrXmlFilID' => $this->managedFileService->register($document->McrXmlPath, $name.'.xml', 'application/xml')]);
+        if ($document->McrCdrPath && \Illuminate\Support\Facades\Storage::disk('local')->exists($document->McrCdrPath))
+            $document->update(['McrCdrFilID' => $this->managedFileService->register($document->McrCdrPath, 'R-'.$name.'.zip', 'application/zip')]);
+        $pdf = $this->invoicePdfService->generate($invoice, $name.'.pdf');
+        $document->update(['McrPdfPath' => $pdf['path'], 'McrPdfFilID' => $this->managedFileService->register($pdf['path'], $name.'.pdf', 'application/pdf')]);
     }
 
     protected function mapToInvoice(FacturaData $data, \App\Models\Empresa $companyConfig): Invoice

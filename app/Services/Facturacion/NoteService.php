@@ -17,6 +17,9 @@ use Greenter\Model\Sale\Note;
 use Greenter\Model\Sale\SaleDetail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use App\Enums\ProcessingCheckpoint;
+use App\Exceptions\ClassifiedSubmissionException;
+use App\Services\Documents\SubmissionCheckpoint;
 
 class NoteService
 {
@@ -24,6 +27,7 @@ class NoteService
         private GreenterService $greenter,
         private InvoicePdfService $pdf,
         private ManagedFileService $files,
+        private SubmissionCheckpoint $checkpoint,
     ) {}
 
     public function emitPersisted(McrDocument $document, array $payload): BillResult
@@ -37,6 +41,7 @@ class NoteService
         $data->serie = $document->McrSeriesCode;
         $data->correlativo = (string) $document->McrCorrelative;
         $note = $this->map($data, $payload['reference'], $company, DecimalAmount::add($payload['mtoOperGravada'], $payload['mtoIGV']), $payload['mtoTotal']);
+        $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::XmlGenerated);
         $disk = Storage::disk('local');
         $name = $document->getKey().'-'.$note->getName();
         $xmlPath = 'facturacion/xml/'.$name.'.xml';
@@ -45,8 +50,16 @@ class NoteService
             throw new \RuntimeException('Could not persist signed XML.');
         }
         $document->update(['McrXmlPath' => $xmlPath]);
-        $result = $this->greenter->sendSignedXml(Note::class, $note->getName(), $xml, $company);
+        $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::XmlSigned);
+        $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::SubmissionStarted, true);
+        try {
+            $result = $this->greenter->sendSignedXml(Note::class, $note->getName(), $xml, $company);
+        } catch (\Throwable $exception) {
+            throw ClassifiedSubmissionException::ambiguous(ProcessingCheckpoint::SubmissionStarted, $exception);
+        }
+        $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::RemoteResponseReceived);
         $document->update(['McrProcessingResult' => json_encode(ProcessingResult::fromBillResult($result)->toArray(), JSON_THROW_ON_ERROR)]);
+        $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::RemoteResultPersisted);
 
         try {
             if ($result->getCdrZip()) {
@@ -67,12 +80,26 @@ class NoteService
                     'McrPdfFilID' => $this->files->register($pdf['path'], $name.'.pdf', 'application/pdf'),
                 ]);
             }
+            $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::ArtifactsGenerated);
         } catch (\Throwable $exception) {
             $document->update(['McrArtifactError' => 'Artifact generation or registration failed; rebuild locally without resending to SUNAT.']);
             Log::error('document.artifact.failed', ['document_id' => $document->getKey(), 'exception_type' => get_class($exception)]);
         }
 
         return $result;
+    }
+
+    public function recoverArtifacts(McrDocument $document, array $payload): void
+    {
+        $company = Empresa::findOrFail($document->McrCompanyConfigID); $data = FacturaData::fromArray($payload);
+        $data->serie=$document->McrSeriesCode; $data->correlativo=(string)$document->McrCorrelative;
+        $note=$this->map($data,$payload['reference'],$company,DecimalAmount::add($payload['mtoOperGravada'],$payload['mtoIGV']),$payload['mtoTotal']);
+        $name=$document->getKey().'-'.$note->getName();
+        $document->update(['McrXmlFilID'=>$this->files->register($document->McrXmlPath,$name.'.xml','application/xml')]);
+        if ($document->McrCdrPath && Storage::disk('local')->exists($document->McrCdrPath))
+            $document->update(['McrCdrFilID'=>$this->files->register($document->McrCdrPath,'R-'.$name.'.zip','application/zip')]);
+        $pdf=$this->pdf->generate($note,$name.'.pdf');
+        $document->update(['McrPdfPath'=>$pdf['path'],'McrPdfFilID'=>$this->files->register($pdf['path'],$name.'.pdf','application/pdf')]);
     }
 
     public function map(FacturaData $data, array $reference, Empresa $companyConfig, string $subTotal, string|int $totalText): Note

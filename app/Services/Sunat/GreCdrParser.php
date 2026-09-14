@@ -4,6 +4,7 @@ namespace App\Services\Sunat;
 
 use App\Enums\DocumentState;
 use App\Services\Documents\ProcessingResult;
+use App\Enums\FailureCategory;
 
 final class GreCdrParser
 {
@@ -24,6 +25,10 @@ final class GreCdrParser
         $notes=[]; foreach ($xp->query('//cbc:Note') ?: [] as $node) $notes[] = trim($node->textContent);
         if ($code === '' || ! ctype_digit($code)) throw new \RuntimeException('GRE CDR has no verifiable response code.');
         $state = ((int)$code === 0) ? ($notes ? DocumentState::AcceptedWithObservations : DocumentState::Accepted) : DocumentState::Rejected;
-        return new ProcessingResult($state, $code, $description, $notes);
+        return new ProcessingResult($state, $code, $description, $notes, failureCategory: match ($state) {
+            DocumentState::Accepted => FailureCategory::RemoteAccepted,
+            DocumentState::AcceptedWithObservations => FailureCategory::RemoteAcceptedWithObservations,
+            default => FailureCategory::RemoteRejected,
+        });
     }
 }
