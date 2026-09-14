@@ -279,7 +279,7 @@ class FacturacionController extends Controller
 
     public function estadoEnvio(int $submissionId): JsonResponse
     {
-        $row = DB::table('McrSunatSubmission as s')->leftJoin('McrDocument as d', 'd.McrDocumentID', '=', 's.McrDocumentID')->where('s.McrSunatSubmissionID', $submissionId)->select('s.*', 'd.McrDocumentType', 'd.McrSeriesCode', 'd.McrCorrelative', 'd.McrPdfPath', 'd.McrXmlPath', 'd.McrZipPath', 'd.McrCdrPath')->first();
+        $row = DB::table('McrSunatSubmission as s')->leftJoin('McrDocument as d', 'd.McrDocumentID', '=', 's.McrDocumentID')->where('s.McrSunatSubmissionID', $submissionId)->select('s.*', 'd.McrDocumentType', 'd.McrSeriesCode', 'd.McrCorrelative', 'd.McrStateVersion', 'd.McrPdfPath', 'd.McrXmlPath', 'd.McrZipPath', 'd.McrCdrPath')->first();
         if (! $row) {
             return response()->json(['message' => 'Envío no encontrado'], 404);
         }
@@ -288,6 +288,7 @@ class FacturacionController extends Controller
             'success' => true,
             'submission_id' => $row->McrSunatSubmissionID,
             'document_id' => $row->McrDocumentID,
+            'state_version' => (int) $row->McrStateVersion,
             'status' => match ($row->McrStatus) {
                 'reconciliation_pending' => 'processing',
                 'manual_review' => 'failed',

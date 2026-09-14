@@ -146,7 +146,8 @@ it('runs the actual resolver processor mapper and persisted signed transport wit
     expect($doc->McrStatus)->toBe('accepted')->and($doc->McrXmlFilID)->not->toBeNull()
         ->and($doc->McrCdrFilID)->not->toBeNull()->and($doc->McrPdfFilID)->not->toBeNull();
     $this->withToken('test-token')->get('/api/facturacion/archivo/xml/'.basename($doc->McrXmlPath))->assertOk();
-    $this->withToken('test-token')->getJson('/api/facturacion/submissions/'.$operation['submission_id'])->assertOk()->assertJsonPath('status', 'accepted');
+    $this->withToken('test-token')->getJson('/api/facturacion/submissions/'.$operation['submission_id'])->assertOk()
+        ->assertJsonPath('status', 'accepted')->assertJsonPath('state_version', 3);
 })->with(['01', '03']);
 
 it('preserves the fiscal result when PDF generation fails after SUNAT acceptance', function () {
