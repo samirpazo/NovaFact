@@ -12,7 +12,9 @@ final class WebhookFanoutService
             ->where('McrCompanyConfigID',$event->McrCompanyConfigID)->where('McrIsEnabled',true)->get();
         $created=0;
         foreach($subscriptions as $subscription){
-            $types=json_decode($subscription->McrEventTypes,true,flags:JSON_THROW_ON_ERROR);
+            $types=is_array($subscription->McrEventTypes)
+                ? $subscription->McrEventTypes
+                : json_decode($subscription->McrEventTypes,true,flags:JSON_THROW_ON_ERROR);
             if(!in_array($event->McrEventType,$types,true)) continue;
             $created+=DB::table('McrWebhookDelivery')->insertOrIgnore(['McrOutboxEventID'=>$event->McrOutboxEventID,
                 'McrWebhookSubscriptionID'=>$subscription->McrWebhookSubscriptionID,'McrStatus'=>'pending','McrNextAttemptAt'=>now(),

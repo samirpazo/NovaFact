@@ -19,7 +19,7 @@ final class WebhookSubscriptionService
         $secret=$this->secret();
         $subscription=McrWebhookSubscription::create(['McrApiClientID'=>$clientId,'McrCompanyConfigID'=>$companyId,
             'McrUrl'=>$url,'McrIsEnabled'=>true,'McrEncryptedSecret'=>Crypt::encryptString($secret),
-            'McrEventTypes'=>json_encode($types,JSON_THROW_ON_ERROR),'McrCreatedAt'=>now(),'McrUpdatedAt'=>now()]);
+            'McrEventTypes'=>$types,'McrCreatedAt'=>now(),'McrUpdatedAt'=>now()]);
         return [$subscription,$secret];
     }
 
@@ -27,7 +27,7 @@ final class WebhookSubscriptionService
     {
         $values=[];
         if(array_key_exists('url',$data)){ $this->destinations->validate($data['url']); $values['McrUrl']=$data['url']; }
-        if(array_key_exists('event_types',$data)) $values['McrEventTypes']=json_encode($this->types($data['event_types']),JSON_THROW_ON_ERROR);
+        if(array_key_exists('event_types',$data)) $values['McrEventTypes']=$this->types($data['event_types']);
         if(array_key_exists('enabled',$data)) $values['McrIsEnabled']=(bool)$data['enabled'];
         $subscription->update($values+['McrUpdatedAt'=>now()]); return $subscription->fresh();
     }
