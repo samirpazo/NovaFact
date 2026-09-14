@@ -12,6 +12,18 @@ SQLite puede mantenerse como apoyo para pruebas rápidas, unitarias o de lógica
 
 Esta regla rige las fases presentes y futuras del proyecto.
 
+## Empresa y establecimiento fiscal
+
+`Company` representa la identidad fiscal legal y conserva RUC, razón social, certificado, SOL, OAuth y
+ambiente. `Establishment` representa el punto fiscal de emisión y conserva código SUNAT, dirección y
+ubigeo. La sucursal comercial del consumidor es otro concepto y se vincula mediante un código externo
+estable.
+
+Las series pertenecen a un establecimiento y no pueden ser ambiguas dentro de una empresa. Cada documento
+conserva explícitamente su establecimiento y un snapshot inmutable. Cambiar la dirección actual nunca
+altera XML, PDF, recuperación ni eventos históricos. Incorporar establecimientos no cambia idempotency key
+ni external reference.
+
 ## Ambigüedad y resultado fiscal
 
 Nunca se reenvía automáticamente una submission cuyo resultado remoto sea ambiguo. Desde que comienza el contacto con SUNAT, una interrupción sin respuesta verificable exige consulta/reconciliación o revisión manual. El texto de una excepción no constituye evidencia de que SUNAT no recibió el documento.

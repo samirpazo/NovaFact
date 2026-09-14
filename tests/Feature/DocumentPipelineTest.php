@@ -272,8 +272,15 @@ it('scopes the same key independently by client and company', function () {
         'McrRuc' => '20999999991', 'McrBusinessName' => 'Company B', 'McrEnvironment' => 'beta',
         'McrIsActive' => true, 'SecStatus' => true, 'McrIgvRate' => 18,
     ]);
+    $establishmentB = \App\Models\McrEstablishment::create([
+        'McrCompanyConfigID' => $companyB->getKey(), 'McrExternalCode' => 'RST-BRANCH-1', 'McrSunatCode' => '0000',
+        'McrName' => 'Company B main', 'McrAddress' => 'Av. Company B 1', 'McrUbigeo' => '150101',
+        'McrCountryCode' => 'PE', 'McrIsDefault' => true, 'McrIsActive' => true, 'SecStatus' => true,
+        'CreateUserId' => 0, 'CreateDate' => now(),
+    ]);
     \App\Models\McrSeries::create([
-        'McrCompanyConfigID' => $companyB->getKey(), 'McrDocumentType' => '01', 'McrSeriesCode' => 'F001',
+        'McrCompanyConfigID' => $companyB->getKey(), 'McrEstablishmentID' => $establishmentB->getKey(),
+        'McrDocumentType' => '01', 'McrSeriesCode' => 'F001',
         'McrNextCorrelative' => 1, 'McrIsActive' => true, 'SecStatus' => true,
         'CreateUserId' => 0, 'CreateDate' => now(),
     ]);

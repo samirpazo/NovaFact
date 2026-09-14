@@ -20,6 +20,7 @@ class StoreFacturaRequest extends FormRequest
         return [
             'tipoDoc' => ['required', Rule::enum(DocumentType::class)],
             'external_reference' => ['nullable', 'string', 'max:150', 'regex:/^[A-Za-z0-9._:\/-]+$/'],
+            'establishment' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._:-]+$/'],
             'serie' => ['nullable', 'regex:/^[FB][A-Z0-9]{3}$/'],
             'correlativo' => ['nullable', 'integer', 'min:1', 'max:99999999'],
             'fechaEmision' => ['required', 'date'],

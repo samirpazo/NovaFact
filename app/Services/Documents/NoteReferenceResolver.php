@@ -36,7 +36,20 @@ class NoteReferenceResolver
         $kind = (string) ($reference['kind'] ?? '');
         if ($kind === 'internal') {
             $reference = $this->internal($company, $payload, $reference, $reason);
+            $original = McrDocument::findOrFail($reference['document_id']);
+            $externalCode = $original->McrEstablishmentSnapshot['external_code']
+                ?? DB::table('McrEstablishment')->where('McrEstablishmentID', $original->McrEstablishmentID)->value('McrExternalCode');
+            if (! $externalCode) {
+                throw new UnprocessableEntityHttpException('The referenced document has no resolvable establishment.');
+            }
+            if (isset($payload['establishment']) && $payload['establishment'] !== $externalCode) {
+                throw new UnprocessableEntityHttpException('A note must use the establishment of the referenced document.');
+            }
+            $payload['establishment'] = $externalCode;
         } elseif ($kind === 'external') {
+            if (! isset($payload['establishment']) || trim((string) $payload['establishment']) === '') {
+                throw new UnprocessableEntityHttpException('establishment is required for an external note reference.');
+            }
             $reference = $this->external($payload, $reference);
         } else {
             throw new UnprocessableEntityHttpException('reference.kind must be internal or external.');

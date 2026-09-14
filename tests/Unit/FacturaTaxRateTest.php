@@ -2,11 +2,12 @@
 
 use App\DTO\FacturaData;
 use App\Models\Empresa;
+use App\Services\Documents\SubmissionCheckpoint;
 use App\Services\Facturacion\FacturaService;
+use App\Services\Facturacion\FiscalCompanyFactory;
 use App\Services\Facturacion\InvoicePdfService;
 use App\Services\Facturacion\ManagedFileService;
 use App\Services\Sunat\GreenterService;
-use App\Services\Documents\SubmissionCheckpoint;
 use Greenter\Xml\Builder\InvoiceBuilder;
 
 test('the XML keeps the requested IGV rate and coherent line amounts', function () {
@@ -27,6 +28,7 @@ test('the XML keeps the requested IGV rate and coherent line amounts', function 
         Mockery::mock(InvoicePdfService::class),
         Mockery::mock(ManagedFileService::class),
         app(SubmissionCheckpoint::class),
+        new FiscalCompanyFactory,
     );
 
     $data = FacturaData::fromArray([
@@ -56,7 +58,12 @@ test('the XML keeps the requested IGV rate and coherent line amounts', function 
     ]);
 
     $method = new ReflectionMethod(FacturaService::class, 'mapToInvoice');
-    $invoice = $method->invoke($service, $data, $company);
+    $invoice = $method->invoke($service, $data, $company, [
+        'external_code' => 'RST-BRANCH-2', 'sunat_code' => '0001', 'name' => 'Sucursal B',
+        'trade_name' => 'Nova Miraflores', 'address' => 'Av. B 456', 'address_reference' => null,
+        'ubigeo' => '150122', 'department' => 'LIMA', 'province' => 'LIMA',
+        'district' => 'MIRAFLORES', 'country_code' => 'PE',
+    ]);
     $xml = (new InvoiceBuilder)->build($invoice);
     $document = new DOMDocument;
     $document->loadXML($xml);
@@ -64,5 +71,8 @@ test('the XML keeps the requested IGV rate and coherent line amounts', function 
 
     expect($xpath->evaluate('string(//*[local-name()="InvoiceLine"]//*[local-name()="Percent"])'))->toBe('10.5')
         ->and($xpath->evaluate('string(//*[local-name()="InvoiceLine"]//*[local-name()="TaxableAmount"])'))->toBe('65.16')
-        ->and($xpath->evaluate('string(//*[local-name()="InvoiceLine"]//*[local-name()="TaxSubtotal"]/*[local-name()="TaxAmount"])'))->toBe('6.84');
+        ->and($xpath->evaluate('string(//*[local-name()="InvoiceLine"]//*[local-name()="TaxSubtotal"]/*[local-name()="TaxAmount"])'))->toBe('6.84')
+        ->and($xpath->evaluate('string(//*[local-name()="RegistrationAddress"]/*[local-name()="ID"])'))->toBe('150122')
+        ->and($xpath->evaluate('string(//*[local-name()="RegistrationAddress"]/*[local-name()="AddressTypeCode"])'))->toBe('0001')
+        ->and($xpath->evaluate('string(//*[local-name()="RegistrationAddress"]//*[local-name()="Line"])'))->toContain('Av. B 456');
 });

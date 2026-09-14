@@ -3,23 +3,21 @@
 namespace App\Services\Facturacion;
 
 use App\DTO\FacturaData;
+use App\Enums\ProcessingCheckpoint;
+use App\Exceptions\ClassifiedSubmissionException;
 use App\Models\Empresa;
 use App\Models\McrDocument;
 use App\Services\Documents\ProcessingResult;
+use App\Services\Documents\SubmissionCheckpoint;
 use App\Services\Sunat\GreenterService;
 use App\Support\DecimalAmount;
 use Greenter\Model\Client\Client;
-use Greenter\Model\Company\Address;
-use Greenter\Model\Company\Company;
 use Greenter\Model\Response\BillResult;
 use Greenter\Model\Sale\Legend;
 use Greenter\Model\Sale\Note;
 use Greenter\Model\Sale\SaleDetail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use App\Enums\ProcessingCheckpoint;
-use App\Exceptions\ClassifiedSubmissionException;
-use App\Services\Documents\SubmissionCheckpoint;
 
 class NoteService
 {
@@ -28,6 +26,7 @@ class NoteService
         private InvoicePdfService $pdf,
         private ManagedFileService $files,
         private SubmissionCheckpoint $checkpoint,
+        private FiscalCompanyFactory $fiscalCompany,
     ) {}
 
     public function emitPersisted(McrDocument $document, array $payload): BillResult
@@ -40,7 +39,7 @@ class NoteService
         $data = FacturaData::fromArray($payload);
         $data->serie = $document->McrSeriesCode;
         $data->correlativo = (string) $document->McrCorrelative;
-        $note = $this->map($data, $payload['reference'], $company, DecimalAmount::add($payload['mtoOperGravada'], $payload['mtoIGV']), $payload['mtoTotal']);
+        $note = $this->map($data, $payload['reference'], $company, DecimalAmount::add($payload['mtoOperGravada'], $payload['mtoIGV']), $payload['mtoTotal'], $document->McrEstablishmentSnapshot);
         $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::XmlGenerated);
         $disk = Storage::disk('local');
         $name = $document->getKey().'-'.$note->getName();
@@ -91,25 +90,24 @@ class NoteService
 
     public function recoverArtifacts(McrDocument $document, array $payload): void
     {
-        $company = Empresa::findOrFail($document->McrCompanyConfigID); $data = FacturaData::fromArray($payload);
-        $data->serie=$document->McrSeriesCode; $data->correlativo=(string)$document->McrCorrelative;
-        $note=$this->map($data,$payload['reference'],$company,DecimalAmount::add($payload['mtoOperGravada'],$payload['mtoIGV']),$payload['mtoTotal']);
-        $name=$document->getKey().'-'.$note->getName();
-        $document->update(['McrXmlFilID'=>$this->files->register($document->McrXmlPath,$name.'.xml','application/xml')]);
-        if ($document->McrCdrPath && Storage::disk('local')->exists($document->McrCdrPath))
-            $document->update(['McrCdrFilID'=>$this->files->register($document->McrCdrPath,'R-'.$name.'.zip','application/zip')]);
-        $pdf=$this->pdf->generate($note,$name.'.pdf');
-        $document->update(['McrPdfPath'=>$pdf['path'],'McrPdfFilID'=>$this->files->register($pdf['path'],$name.'.pdf','application/pdf')]);
+        $company = Empresa::findOrFail($document->McrCompanyConfigID);
+        $data = FacturaData::fromArray($payload);
+        $data->serie = $document->McrSeriesCode;
+        $data->correlativo = (string) $document->McrCorrelative;
+        $note = $this->map($data, $payload['reference'], $company, DecimalAmount::add($payload['mtoOperGravada'], $payload['mtoIGV']), $payload['mtoTotal'], $document->McrEstablishmentSnapshot);
+        $name = $document->getKey().'-'.$note->getName();
+        $document->update(['McrXmlFilID' => $this->files->register($document->McrXmlPath, $name.'.xml', 'application/xml')]);
+        if ($document->McrCdrPath && Storage::disk('local')->exists($document->McrCdrPath)) {
+            $document->update(['McrCdrFilID' => $this->files->register($document->McrCdrPath, 'R-'.$name.'.zip', 'application/zip')]);
+        }
+        $pdf = $this->pdf->generate($note, $name.'.pdf');
+        $document->update(['McrPdfPath' => $pdf['path'], 'McrPdfFilID' => $this->files->register($pdf['path'], $name.'.pdf', 'application/pdf')]);
     }
 
-    public function map(FacturaData $data, array $reference, Empresa $companyConfig, string $subTotal, string|int $totalText): Note
+    public function map(FacturaData $data, array $reference, Empresa $companyConfig, string $subTotal, string|int $totalText, ?array $establishmentSnapshot = null): Note
     {
         $client = (new Client)->setTipoDoc($data->clientTipoDoc)->setNumDoc($data->clientNumDoc)->setRznSocial($data->clientRznSocial);
-        $company = (new Company)->setRuc($companyConfig->CpyRuc)->setRazonSocial($companyConfig->CpyBusinessName)
-            ->setNombreComercial($companyConfig->CpyTradename)->setAddress((new Address)
-            ->setUbigueo($companyConfig->ubigeo)->setDepartamento($companyConfig->departamento)
-            ->setProvincia($companyConfig->provincia)->setDistrito($companyConfig->distrito)
-            ->setUrbanizacion($companyConfig->urbanizacion)->setDireccion($companyConfig->CpyAddress)->setCodLocal('0000'));
+        $company = $this->fiscalCompany->make($companyConfig, $establishmentSnapshot);
         $rate = $data->igvRate ?? (float) ($companyConfig->McrIgvRate ?? 18);
         $note = (new Note)->setUblVersion('2.1')->setTipoDoc($data->tipoDoc)->setSerie($data->serie)
             ->setCorrelativo($data->correlativo)->setFechaEmision(new \DateTime($data->fechaEmision))

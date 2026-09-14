@@ -37,6 +37,7 @@ final class SalesPayloadNormalizer
         $data = FacturaData::fromArray($payload);
         $normalized = [
             'tipoDoc' => $data->tipoDoc,
+            'establishment' => isset($payload['establishment']) ? trim((string) $payload['establishment']) : null,
             'serie' => $data->serie,
             'fechaEmision' => CarbonImmutable::parse($data->fechaEmision, date_default_timezone_get())->format('c'),
             'tipoMoneda' => $data->tipoMoneda,

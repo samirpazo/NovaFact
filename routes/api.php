@@ -1,8 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\EstablishmentController;
 use App\Http\Controllers\Api\FacturacionController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\WebhookSubscriptionController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware(['session.token'])->group(function () {
     Route::prefix('webhooks/subscriptions')->group(function () {
@@ -14,6 +15,9 @@ Route::middleware(['session.token'])->group(function () {
         Route::post('{id}/rotate-secret', [WebhookSubscriptionController::class, 'rotate'])->whereNumber('id');
     });
     Route::prefix('facturacion')->group(function () {
+        Route::get('configuracion/establecimientos', [EstablishmentController::class, 'index']);
+        Route::post('configuracion/establecimientos', [EstablishmentController::class, 'store']);
+        Route::patch('configuracion/establecimientos/{id}', [EstablishmentController::class, 'update'])->whereNumber('id');
         Route::post('emitir-factura', [FacturacionController::class, 'emitFactura']);
         Route::post('boletas/resumen-diario', [FacturacionController::class, 'resumenBoletas']);
         Route::post('boletas/baja', [FacturacionController::class, 'baja']);

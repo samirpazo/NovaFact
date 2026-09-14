@@ -3,14 +3,14 @@
 namespace App\Jobs;
 
 use App\Enums\DocumentState;
+use App\Enums\FailureCategory;
+use App\Enums\ProcessingCheckpoint;
+use App\Exceptions\ClassifiedSubmissionException;
 use App\Models\McrDocument;
 use App\Services\Documents\DocumentLifecycle;
 use App\Services\Documents\DocumentProcessorResolver;
 use App\Services\Documents\PayloadCodec;
 use App\Services\Documents\ProcessingResult;
-use App\Enums\FailureCategory;
-use App\Enums\ProcessingCheckpoint;
-use App\Exceptions\ClassifiedSubmissionException;
 use App\Services\Documents\RetryBackoffPolicy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -118,6 +118,7 @@ class ProcessElectronicDocumentJob implements ShouldQueue
             return new ProcessingResult(DocumentState::ManualReview, error: 'Persisted document validation failed.',
                 failureCategory: FailureCategory::Validation);
         }
+
         return new ProcessingResult(DocumentState::RetryPending, error: 'Recoverable local processing failure.',
             failureCategory: FailureCategory::LocalRetryable, retryable: true);
     }
@@ -126,6 +127,7 @@ class ProcessElectronicDocumentJob implements ShouldQueue
     {
         $submission = DB::table('McrSunatSubmission')->where('McrSunatSubmissionID', $this->submissionId)->first();
         $checkpoint = ProcessingCheckpoint::tryFrom($submission->McrCheckpoint ?? '') ?? ProcessingCheckpoint::Admitted;
+
         return $checkpoint->contactedRemote()
             ? new ProcessingResult(DocumentState::ReconciliationPending, error: 'Worker stopped after remote contact; reconciliation is required.', failureCategory: FailureCategory::WorkerInterrupted, ambiguous: true)
             : new ProcessingResult(DocumentState::RetryPending, error: 'Worker stopped before remote contact.', failureCategory: FailureCategory::WorkerInterrupted, retryable: true);
@@ -134,8 +136,11 @@ class ProcessElectronicDocumentJob implements ShouldQueue
     private function logContext(): array
     {
         $document = McrDocument::find($this->documentId);
+
         return ['document_id' => $this->documentId, 'submission_id' => $this->submissionId,
-            'company_id' => $document?->McrCompanyConfigID, 'document_type' => $document?->McrDocumentType,
+            'company_id' => $document?->McrCompanyConfigID, 'establishment_id' => $document?->McrEstablishmentID,
+            'establishment_external_code' => $document?->McrEstablishmentSnapshot['external_code'] ?? null,
+            'document_type' => $document?->McrDocumentType,
             'external_reference' => $document?->McrExternalReference,
             'attempt' => DB::table('McrSunatSubmission')->where('McrSunatSubmissionID', $this->submissionId)->value('McrAttemptNumber')];
     }

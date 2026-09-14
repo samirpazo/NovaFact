@@ -16,7 +16,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FacturacionController extends Controller
 {
-
     public function emitFactura(StoreFacturaRequest $request): JsonResponse
     {
         $payload = $request->validated();
@@ -32,12 +31,14 @@ class FacturacionController extends Controller
         if (! $company) {
             return response()->json(['company' => null]);
         }
-        $series = DB::table('McrSeries')->where('McrCompanyConfigID', $company->McrCompanyConfigID)
-            ->where('SecStatus', true)->orderBy('McrDocumentType')->get()->map(fn ($row) => [
+        $series = DB::table('McrSeries')->leftJoin('McrEstablishment', 'McrEstablishment.McrEstablishmentID', '=', 'McrSeries.McrEstablishmentID')
+            ->where('McrSeries.McrCompanyConfigID', $company->McrCompanyConfigID)
+            ->where('McrSeries.SecStatus', true)->orderBy('McrDocumentType')->get()->map(fn ($row) => [
                 'document_type' => $row->McrDocumentType,
                 'series_code' => $row->McrSeriesCode,
                 'next_correlative' => (int) $row->McrNextCorrelative,
                 'active' => (bool) $row->McrIsActive,
+                'establishment' => $row->McrExternalCode,
             ])->values();
 
         return response()->json(['company' => [
@@ -133,23 +134,30 @@ class FacturacionController extends Controller
 
     public function updateSeries(Request $request): JsonResponse
     {
-        $data = $request->validate(['series' => ['required', 'array', 'min:1'], 'series.*.document_type' => ['required', 'in:01,03,07,08,09,31'], 'series.*.series_code' => ['required', 'regex:/^[A-Z][A-Z0-9]{3}$/'], 'series.*.next_correlative' => ['required', 'integer', 'min:1'], 'series.*.active' => ['required', 'boolean']]);
+        $data = $request->validate(['series' => ['required', 'array', 'min:1'], 'series.*.document_type' => ['required', 'in:01,03,07,08,09,31'], 'series.*.series_code' => ['required', 'regex:/^[A-Z][A-Z0-9]{3}$/'], 'series.*.next_correlative' => ['required', 'integer', 'min:1'], 'series.*.active' => ['required', 'boolean'], 'series.*.establishment' => ['nullable', 'string', 'max:100']]);
         $company = Empresa::where('McrIsActive', true)->where('SecStatus', true)->where('McrEnvironment', 'beta')->first();
         if (! $company) {
             return response()->json(['message' => 'No hay una empresa Beta activa configurada.'], 422);
         }
         DB::transaction(function () use ($data, $company) {
             foreach ($data['series'] as $item) {
-                $requiredPrefix = match ($item['document_type']) { '01'=>'F', '03'=>'B', '07','08'=>null, '09'=>'T', '31'=>'V' };
+                $establishment = app(\App\Services\Documents\EstablishmentResolver::class)->resolve($company, ['establishment' => $item['establishment'] ?? null]);
+                $requiredPrefix = match ($item['document_type']) {
+                    '01' => 'F', '03' => 'B', '07','08' => null, '09' => 'T', '31' => 'V'
+                };
                 abort_if($requiredPrefix !== null && ! str_starts_with($item['series_code'], $requiredPrefix), 422, 'La serie no corresponde al tipo de documento.');
                 $maxUsed = (int) DB::table('McrDocument')->where('McrCompanyConfigID', $company->getKey())->where('McrDocumentType', $item['document_type'])->where('McrSeriesCode', $item['series_code'])->max('McrCorrelative');
                 abort_if($item['next_correlative'] <= $maxUsed, 422, 'El próximo correlativo debe ser mayor al último comprobante emitido.');
                 $series = McrSeries::firstOrNew(['McrCompanyConfigID' => $company->getKey(), 'McrDocumentType' => $item['document_type'], 'McrSeriesCode' => $item['series_code']]);
+                if ($series->exists && $series->McrEstablishmentID && (int) $series->McrEstablishmentID !== (int) $establishment->getKey()) {
+                    abort(422, 'Una serie existente no puede moverse a otro establecimiento.');
+                }
                 if (! $series->exists) {
                     $series->CreateUserId = 0;
                     $series->CreateDate = now();
                 }
                 $series->McrNextCorrelative = $item['next_correlative'];
+                $series->McrEstablishmentID = $establishment->getKey();
                 $series->McrIsActive = $item['active'];
                 $series->SecStatus = true;
                 $series->UpdateUserId = 0;
@@ -195,27 +203,31 @@ class FacturacionController extends Controller
         $payload = $request->all();
         $context = app(\App\Services\Documents\LegacyAdmissionContextResolver::class)->resolve($request);
         unset($payload['external_reference']);
+
         return response()->json(app(\App\Services\Documents\AdmitElectronicDocument::class)->execute($context, $payload)->toArray(), 202);
     }
 
     public function consultarHistorialGuia(string $ticket): JsonResponse
     {
         $submission = DB::table('McrSunatSubmission')->where('McrTicket', $ticket)->first();
-        if (! $submission) return response()->json(['message' => 'Ticket no encontrado'], 404);
-        return response()->json(['submission_id'=>(int)$submission->McrSunatSubmissionID,
-            'document_id'=>(int)$submission->McrDocumentID,'ticket'=>$submission->McrTicket,
-            'status'=>$submission->McrStatus,'error'=>$submission->McrError]);
+        if (! $submission) {
+            return response()->json(['message' => 'Ticket no encontrado'], 404);
+        }
+
+        return response()->json(['submission_id' => (int) $submission->McrSunatSubmissionID,
+            'document_id' => (int) $submission->McrDocumentID, 'ticket' => $submission->McrTicket,
+            'status' => $submission->McrStatus, 'error' => $submission->McrError]);
     }
 
     public function descargarArchivo(string $tipo, string $nombre): StreamedResponse|JsonResponse
     {
-        $columns = ['pdf'=>'McrPdfPath','xml'=>'McrXmlPath','zip'=>'McrZipPath','cdr'=>'McrCdrPath'];
+        $columns = ['pdf' => 'McrPdfPath', 'xml' => 'McrXmlPath', 'zip' => 'McrZipPath', 'cdr' => 'McrCdrPath'];
         if (! isset($columns[$tipo]) || $nombre !== basename($nombre)) {
             return response()->json(['message' => 'Archivo inválido'], 400);
         }
-        $column=$columns[$tipo];
+        $column = $columns[$tipo];
         $path = DB::table('McrDocument')->whereNotNull($column)->get([$column])->pluck($column)
-            ->first(fn ($candidate) => basename((string)$candidate) === $nombre);
+            ->first(fn ($candidate) => basename((string) $candidate) === $nombre);
         $path ??= 'facturacion/'.$tipo.'/'.$nombre;
         $disk = Storage::disk('local');
         if (! $disk->exists($path)) {
@@ -274,6 +286,7 @@ class FacturacionController extends Controller
     {
         $id = $request->header('X-Company-Id');
         abort_unless(is_string($id) && ctype_digit($id), 422, 'X-Company-Id is required for fiscal operations.');
+
         return \App\Models\Empresa::whereKey((int) $id)->where('McrIsActive', true)->where('SecStatus', true)->firstOrFail();
     }
 

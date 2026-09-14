@@ -18,7 +18,8 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class AdmitElectronicDocument
 {
-    public function __construct(private SalesPayloadNormalizer $normalizer, private DespatchPayloadNormalizer $despatchNormalizer, private NoteReferenceResolver $noteReferences) {}
+    public function __construct(private SalesPayloadNormalizer $normalizer, private DespatchPayloadNormalizer $despatchNormalizer,
+        private NoteReferenceResolver $noteReferences, private EstablishmentResolver $establishments) {}
 
     public function execute(AdmissionContext $context, array $payload): AdmissionResult
     {
@@ -31,11 +32,14 @@ class AdmitElectronicDocument
                 }
 
                 $isDespatch = DocumentType::tryFrom((string) ($payload['tipoDoc'] ?? ''))?->isDespatch() === true;
+                $resolvedPayload = $isDespatch ? $payload : $this->noteReferences->resolve($company, $payload);
+                $establishment = $this->establishments->resolve($company, $resolvedPayload);
+                $resolvedPayload['establishment'] = $establishment->McrExternalCode;
                 $canonicalRequest = $isDespatch
-                    ? $this->despatchNormalizer->request($payload)
-                    : $this->normalizer->request($this->noteReferences->resolve($company, $payload));
+                    ? $this->despatchNormalizer->request($resolvedPayload)
+                    : $this->normalizer->request($resolvedPayload);
 
-                $series = $this->resolveConfiguredSeries($company, $canonicalRequest);
+                $series = $this->resolveConfiguredSeries($company, $establishment, $canonicalRequest);
                 $canonicalRequest['serie'] = $series->McrSeriesCode;
                 $requestHash = PayloadCodec::hash($canonicalRequest);
 
@@ -69,6 +73,8 @@ class AdmitElectronicDocument
                 $document = McrDocument::create([
                     'McrApiClientID' => $client->getKey(),
                     'McrCompanyConfigID' => $company->getKey(),
+                    'McrEstablishmentID' => $establishment->getKey(),
+                    'McrEstablishmentSnapshot' => $establishment->snapshot(),
                     'McrSeriesID' => $series->getKey(),
                     'McrExternalReference' => $context->externalReference,
                     'McrRequestHash' => $requestHash,
@@ -92,7 +98,9 @@ class AdmitElectronicDocument
                     'CreateDate' => now(),
                 ]);
                 $this->storeLines($document, $processingPayload, $isDespatch);
-                if (! $isDespatch) $this->storeReference($document, $processingPayload);
+                if (! $isDespatch) {
+                    $this->storeReference($document, $processingPayload);
+                }
                 DB::table('McrDocumentPayload')->insert([
                     'McrDocumentID' => $document->getKey(),
                     'McrPayload' => $json,
@@ -131,17 +139,22 @@ class AdmitElectronicDocument
             if (! $company) {
                 throw $exception;
             }
+            $resolvedPayload = DocumentType::tryFrom((string) ($payload['tipoDoc'] ?? ''))?->isDespatch()
+                ? $payload : $this->noteReferences->resolve($company, $payload);
+            $establishment = $this->establishments->resolve($company, $resolvedPayload);
+            $resolvedPayload['establishment'] = $establishment->McrExternalCode;
             $canonicalRequest = DocumentType::tryFrom((string) ($payload['tipoDoc'] ?? ''))?->isDespatch()
-                ? $this->despatchNormalizer->request($payload)
-                : $this->normalizer->request($this->noteReferences->resolve($company, $payload));
+                ? $this->despatchNormalizer->request($resolvedPayload)
+                : $this->normalizer->request($resolvedPayload);
 
             return $this->resolveConcurrentWinner($context, $canonicalRequest);
         }
     }
 
-    private function resolveConfiguredSeries(Empresa $company, array $payload): McrSeries
+    private function resolveConfiguredSeries(Empresa $company, \App\Models\McrEstablishment $establishment, array $payload): McrSeries
     {
         $query = McrSeries::where('McrCompanyConfigID', $company->getKey())
+            ->where('McrEstablishmentID', $establishment->getKey())
             ->where('McrDocumentType', $payload['tipoDoc'])
             ->where('McrIsActive', true)
             ->where('SecStatus', true);

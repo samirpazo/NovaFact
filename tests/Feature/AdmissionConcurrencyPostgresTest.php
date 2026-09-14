@@ -2,6 +2,7 @@
 
 use App\Models\McrApiClient;
 use App\Models\McrDocument;
+use App\Models\McrEstablishment;
 use App\Services\Documents\AdmitElectronicDocument;
 use Illuminate\Support\Facades\DB;
 use App\Jobs\PollSunatSubmissionJob;
@@ -164,6 +165,52 @@ it('allocates fifty gapless correlatives through independent concurrent connecti
         ->and((int) DB::table('McrSeries')->where('McrDocumentType', '01')->value('McrNextCorrelative'))->toBe(51);
 });
 
+it('allocates independent gapless correlatives for two establishments', function () {
+    $companyId = (int) DB::table('McrCompanyConfig')->value('McrCompanyConfigID');
+    $branchB = McrEstablishment::create([
+        'McrCompanyConfigID' => $companyId, 'McrExternalCode' => 'RST-BRANCH-2',
+        'McrSunatCode' => '0001', 'McrName' => 'Sucursal B', 'McrAddress' => 'Av. B 456',
+        'McrUbigeo' => '150102', 'McrCountryCode' => 'PE', 'McrIsDefault' => false,
+        'McrIsActive' => true, 'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now(),
+    ]);
+    DB::table('McrSeries')->insert([
+        'McrCompanyConfigID' => $companyId, 'McrEstablishmentID' => $branchB->getKey(),
+        'McrDocumentType' => '01', 'McrSeriesCode' => 'F002', 'McrNextCorrelative' => 1,
+        'McrIsActive' => true, 'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now(),
+    ]);
+    $operations = [];
+    foreach (range(1, 50) as $number) {
+        $a = pipelinePayload(); $a['clientRznSocial'] = "Branch A $number";
+        $b = pipelinePayload(); $b['establishment'] = 'RST-BRANCH-2'; $b['serie'] = 'F002';
+        $b['clientRznSocial'] = "Branch B $number";
+        $operations[] = ['context' => pipelineContext("branch-a-$number"), 'payload' => $a];
+        $operations[] = ['context' => pipelineContext("branch-b-$number"), 'payload' => $b];
+    }
+    $results = concurrentAdmissions($operations);
+    expect(collect($results)->where('ok', true))->toHaveCount(100)
+        ->and(McrDocument::where('McrSeriesCode', 'F001')->orderBy('McrCorrelative')->pluck('McrCorrelative')->map(fn ($v) => (int) $v)->all())->toBe(range(1, 50))
+        ->and(McrDocument::where('McrSeriesCode', 'F002')->orderBy('McrCorrelative')->pluck('McrCorrelative')->map(fn ($v) => (int) $v)->all())->toBe(range(1, 50));
+});
+
+it('migrates legacy establishments without changing fiscal identity and survives down up', function () {
+    $document = persistedOriginal();
+    $before = McrDocument::whereKey($document->getKey())
+        ->first(['McrCompanyConfigID', 'McrSeriesCode', 'McrCorrelative'])->toArray();
+    $migration = require database_path('migrations/2026_09_14_000000_add_fiscal_establishments.php');
+    $migration->down();
+    foreach ([1, 2] as $run) {
+        $migration->up();
+        $after = McrDocument::whereKey($document->getKey())->firstOrFail();
+        expect($after->only(array_keys($before)))->toBe($before)
+            ->and($after->McrEstablishmentID)->not->toBeNull()
+            ->and($after->McrEstablishmentSnapshot['address'])->toBe('Av. Fixture 123')
+            ->and(DB::table('McrEstablishment')->where('McrExternalCode', 'DEFAULT')->count())->toBe(1)
+            ->and(DB::table('pg_indexes')->where('schemaname', $this->pipelineSchema)
+                ->where('indexname', 'UX_McrEstablishment_ActiveDefault')->exists())->toBeTrue();
+        if ($run === 1) $migration->down();
+    }
+});
+
 it('allocates fifty gapless correlatives for each GRE series', function (string $type) {
     $operations=[];
     foreach(range(1,50) as $number){ $payload=despatchPayload($type); $payload['destinatario']['razon_social']='GRE destination '.$number;
@@ -192,8 +239,14 @@ it('scopes a simultaneous shared key across clients and companies', function () 
         'McrRuc' => '20999999991', 'McrBusinessName' => 'Parallel company B', 'McrEnvironment' => 'beta',
         'McrIsActive' => true, 'SecStatus' => true, 'McrIgvRate' => 18,
     ]);
+    $establishmentB = McrEstablishment::create([
+        'McrCompanyConfigID' => $companyB->getKey(), 'McrExternalCode' => 'RST-BRANCH-1',
+        'McrSunatCode' => '0000', 'McrName' => 'Parallel B', 'McrAddress' => 'Av. Parallel 1',
+        'McrUbigeo' => '150101', 'McrCountryCode' => 'PE', 'McrIsDefault' => true,
+        'McrIsActive' => true, 'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now(),
+    ]);
     \App\Models\McrSeries::create([
-        'McrCompanyConfigID' => $companyB->getKey(), 'McrDocumentType' => '01', 'McrSeriesCode' => 'F001',
+        'McrCompanyConfigID' => $companyB->getKey(), 'McrEstablishmentID' => $establishmentB->getKey(), 'McrDocumentType' => '01', 'McrSeriesCode' => 'F001',
         'McrNextCorrelative' => 1, 'McrIsActive' => true, 'SecStatus' => true,
         'CreateUserId' => 0, 'CreateDate' => now(),
     ]);

@@ -57,7 +57,10 @@ it('deduplicates a logical transition and keeps an immutable versioned envelope'
     $payload=json_decode($event->McrPayloadBody,true);
     expect($inserted)->toBe(0)->and(DB::table('McrOutboxEvent')->count())->toBe(1)
         ->and($payload['event_id'])->toBe($event->McrOutboxEventID)->and($payload['event_version'])->toBe(1)
-        ->and($payload['state_version'])->toBe(3)->and($payload['data']['document_id'])->toBe($op['document_id']);
+        ->and($payload['state_version'])->toBe(3)->and($payload['data']['document_id'])->toBe($op['document_id'])
+        ->and($payload['data']['establishment'])->toBe([
+            'external_code'=>'RST-BRANCH-1','sunat_code'=>'0000','name'=>'Sucursal fixture',
+        ]);
 });
 
 it('fans one event to all matching scoped subscriptions only',function(){

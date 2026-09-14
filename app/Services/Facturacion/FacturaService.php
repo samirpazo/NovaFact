@@ -3,16 +3,15 @@
 namespace App\Services\Facturacion;
 
 use App\DTO\FacturaData;
+use App\Enums\ProcessingCheckpoint;
+use App\Exceptions\ClassifiedSubmissionException;
+use App\Services\Documents\SubmissionCheckpoint;
 use App\Services\Sunat\GreenterService;
 use Greenter\Model\Client\Client;
-use Greenter\Model\Company\Company;
 use Greenter\Model\Response\BillResult;
 use Greenter\Model\Sale\Invoice;
 use Greenter\Model\Sale\Legend;
 use Greenter\Model\Sale\SaleDetail;
-use App\Enums\ProcessingCheckpoint;
-use App\Exceptions\ClassifiedSubmissionException;
-use App\Services\Documents\SubmissionCheckpoint;
 
 class FacturaService
 {
@@ -21,6 +20,7 @@ class FacturaService
         protected InvoicePdfService $invoicePdfService,
         protected ManagedFileService $managedFileService,
         protected SubmissionCheckpoint $checkpoint,
+        protected FiscalCompanyFactory $fiscalCompany,
     ) {}
 
     /** Process a reserved document without ever allocating another number. */
@@ -33,7 +33,7 @@ class FacturaService
         }
         $data->serie = $document->McrSeriesCode;
         $data->correlativo = (string) $document->McrCorrelative;
-        $invoice = $this->mapToInvoice($data, $company);
+        $invoice = $this->mapToInvoice($data, $company, $document->McrEstablishmentSnapshot);
         $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::XmlGenerated);
         $disk = \Illuminate\Support\Facades\Storage::disk('local');
         $name = $document->getKey().'-'.$invoice->getName();
@@ -95,16 +95,19 @@ class FacturaService
     public function recoverArtifacts(\App\Models\McrDocument $document, FacturaData $data): void
     {
         $company = \App\Models\Empresa::findOrFail($document->McrCompanyConfigID);
-        $data->serie = $document->McrSeriesCode; $data->correlativo = (string) $document->McrCorrelative;
-        $invoice = $this->mapToInvoice($data, $company); $name = $document->getKey().'-'.$invoice->getName();
+        $data->serie = $document->McrSeriesCode;
+        $data->correlativo = (string) $document->McrCorrelative;
+        $invoice = $this->mapToInvoice($data, $company, $document->McrEstablishmentSnapshot);
+        $name = $document->getKey().'-'.$invoice->getName();
         $document->update(['McrXmlFilID' => $this->managedFileService->register($document->McrXmlPath, $name.'.xml', 'application/xml')]);
-        if ($document->McrCdrPath && \Illuminate\Support\Facades\Storage::disk('local')->exists($document->McrCdrPath))
+        if ($document->McrCdrPath && \Illuminate\Support\Facades\Storage::disk('local')->exists($document->McrCdrPath)) {
             $document->update(['McrCdrFilID' => $this->managedFileService->register($document->McrCdrPath, 'R-'.$name.'.zip', 'application/zip')]);
+        }
         $pdf = $this->invoicePdfService->generate($invoice, $name.'.pdf');
         $document->update(['McrPdfPath' => $pdf['path'], 'McrPdfFilID' => $this->managedFileService->register($pdf['path'], $name.'.pdf', 'application/pdf')]);
     }
 
-    protected function mapToInvoice(FacturaData $data, \App\Models\Empresa $companyConfig): Invoice
+    protected function mapToInvoice(FacturaData $data, \App\Models\Empresa $companyConfig, ?array $establishmentSnapshot = null): Invoice
     {
         $client = (new Client)
             ->setTipoDoc($data->clientTipoDoc)
@@ -116,18 +119,7 @@ class FacturaService
         // una tasa fija aquí desincroniza el XML cuando la operación (por ejemplo
         // en Beta) está configurada con una tasa distinta al 18% estándar.
         $igvRate = $data->igvRate ?? (float) ($empresaActual->McrIgvRate ?? 18);
-        $company = (new Company)
-            ->setRuc($empresaActual->CpyRuc)
-            ->setRazonSocial($empresaActual->CpyBusinessName)
-            ->setNombreComercial($empresaActual->CpyTradename)
-            ->setAddress((new \Greenter\Model\Company\Address)
-                ->setUbigueo($empresaActual->ubigeo)
-                ->setDepartamento($empresaActual->departamento)
-                ->setProvincia($empresaActual->provincia)
-                ->setDistrito($empresaActual->distrito)
-                ->setUrbanizacion($empresaActual->urbanizacion)
-                ->setDireccion($empresaActual->CpyAddress)
-                ->setCodLocal('0000'));
+        $company = $this->fiscalCompany->make($empresaActual, $establishmentSnapshot);
 
         $subTotal = floatval($data->mtoOperGravada + $data->mtoIGV);
 

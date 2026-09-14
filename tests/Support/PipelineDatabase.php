@@ -41,11 +41,22 @@ function bootPipelineDatabase(): void
     config(['sunat.production' => false, 'services.billing.token' => 'test-token']);
     \App\Models\Empresa::create([
         'McrRuc' => '20123456789', 'McrBusinessName' => 'Pipeline fixture', 'McrEnvironment' => 'beta',
+        'McrAddress' => 'Av. Fixture 123', 'McrUbigeo' => '150101', 'McrDepartment' => 'LIMA',
+        'McrProvince' => 'LIMA', 'McrDistrict' => 'LIMA',
         'McrIsActive' => true, 'SecStatus' => true, 'McrIgvRate' => 18,
+    ]);
+    $establishment = \App\Models\McrEstablishment::create([
+        'McrCompanyConfigID' => \App\Models\Empresa::firstOrFail()->getKey(),
+        'McrExternalCode' => 'RST-BRANCH-1', 'McrSunatCode' => '0000',
+        'McrName' => 'Sucursal fixture', 'McrAddress' => 'Av. Fixture 123',
+        'McrUbigeo' => '150101', 'McrDepartment' => 'LIMA', 'McrProvince' => 'LIMA',
+        'McrDistrict' => 'LIMA', 'McrCountryCode' => 'PE', 'McrIsDefault' => true,
+        'McrIsActive' => true, 'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now(),
     ]);
     foreach ([['01', 'F001'], ['03', 'B001'], ['07', 'FC01'], ['07', 'BC01'], ['08', 'FD01'], ['08', 'BD01'], ['09', 'T001'], ['31', 'V001']] as [$type, $series]) {
         \App\Models\McrSeries::create([
             'McrCompanyConfigID' => \App\Models\Empresa::firstOrFail()->getKey(),
+            'McrEstablishmentID' => $establishment->getKey(),
             'McrDocumentType' => $type,
             'McrSeriesCode' => $series,
             'McrNextCorrelative' => 1,
@@ -67,6 +78,8 @@ function persistedOriginal(string $type = '01', ?int $companyId = null, string $
     return \App\Models\McrDocument::create([
         'McrApiClientID' => \App\Models\McrApiClient::where('McrCode', 'legacy')->value('McrApiClientID'),
         'McrCompanyConfigID' => $companyId,
+        'McrEstablishmentID' => \App\Models\McrEstablishment::where('McrCompanyConfigID', $companyId)->value('McrEstablishmentID'),
+        'McrEstablishmentSnapshot' => \App\Models\McrEstablishment::where('McrCompanyConfigID', $companyId)->first()?->snapshot(),
         'McrDocumentType' => $type, 'McrSeriesCode' => $type === '01' ? 'F001' : 'B001', 'McrCorrelative' => $correlative,
         'McrIssueDate' => '2026-09-01', 'McrIssuedAt' => '2026-09-01T10:00:00-05:00', 'McrCurrencyCode' => 'PEN',
         'McrCustomerDocumentType' => $type === '01' ? '6' : '1',
@@ -112,7 +125,7 @@ function pipelineContext(string $key = 'test-key-0001', ?string $externalReferen
 function pipelinePayload(string $type = '01'): array
 {
     return [
-        'tipoDoc' => $type, 'serie' => $type === '01' ? 'F001' : 'B001', 'fechaEmision' => '2026-09-13', 'tipoMoneda' => 'PEN',
+        'tipoDoc' => $type, 'establishment' => 'RST-BRANCH-1', 'serie' => $type === '01' ? 'F001' : 'B001', 'fechaEmision' => '2026-09-13', 'tipoMoneda' => 'PEN',
         'clientTipoDoc' => $type === '01' ? '6' : '1',
         'clientNumDoc' => $type === '01' ? '20123456789' : '12345678', 'clientRznSocial' => 'Test client',
         'mtoOperGravada' => 100, 'mtoIGV' => 18, 'mtoTotal' => 118,
@@ -124,16 +137,24 @@ function pipelinePayload(string $type = '01'): array
 function despatchPayload(string $type = '09', string $mode = '02'): array
 {
     $shipment = [
-        'motivo'=>'01','modalidad'=>$mode,'fecha_inicio'=>'2026-09-14','peso_bruto'=>'125.375','unidad_peso'=>'KGM','bultos'=>2,
-        'origen'=>['ubigeo'=>'150101','direccion'=>'Av. Origen 123'],
-        'destino'=>['ubigeo'=>'150122','direccion'=>'Av. Destino 456'],
+        'motivo' => '01', 'modalidad' => $mode, 'fecha_inicio' => '2026-09-14', 'peso_bruto' => '125.375', 'unidad_peso' => 'KGM', 'bultos' => 2,
+        'origen' => ['ubigeo' => '150101', 'direccion' => 'Av. Origen 123'],
+        'destino' => ['ubigeo' => '150122', 'direccion' => 'Av. Destino 456'],
     ];
-    if ($mode === '01') $shipment['transportista']=['tipo_documento'=>'6','numero_documento'=>'20555555551','razon_social'=>'Transportes Demo SAC','registro_mtc'=>'1512345CNG'];
-    else { $shipment['conductor']=['tipo_documento'=>'1','numero_documento'=>'12345678','nombres'=>'Ana','apellidos'=>'Quispe','licencia'=>'Q12345678']; $shipment['vehiculo']=['placa'=>'ABC123']; }
-    $payload=['tipoDoc'=>$type,'serie'=>$type==='09'?'T001':'V001','fechaEmision'=>'2026-09-13T12:00:00-05:00',
-        'destinatario'=>['tipo_documento'=>'6','numero_documento'=>'20444444441','razon_social'=>'Destinatario SAC'],
-        'traslado'=>$shipment,'bienes'=>[['codigo'=>'P001','descripcion'=>'Producto de prueba','unidad'=>'NIU','cantidad'=>'10.500000']],
-        'documentos_relacionados'=>[['tipo'=>'01','numero'=>'F001-123','emisor'=>'20123456789']]];
-    if ($type==='31') $payload['remitente']=['tipo_documento'=>'6','numero_documento'=>'20333333331','razon_social'=>'Remitente SAC'];
+    if ($mode === '01') {
+        $shipment['transportista'] = ['tipo_documento' => '6', 'numero_documento' => '20555555551', 'razon_social' => 'Transportes Demo SAC', 'registro_mtc' => '1512345CNG'];
+    } else {
+        $shipment['conductor'] = ['tipo_documento' => '1', 'numero_documento' => '12345678', 'nombres' => 'Ana', 'apellidos' => 'Quispe', 'licencia' => 'Q12345678'];
+        $shipment['vehiculo'] = ['placa' => 'ABC123'];
+    }
+    $payload = ['tipoDoc' => $type, 'serie' => $type === '09' ? 'T001' : 'V001', 'fechaEmision' => '2026-09-13T12:00:00-05:00',
+        'establishment' => 'RST-BRANCH-1',
+        'destinatario' => ['tipo_documento' => '6', 'numero_documento' => '20444444441', 'razon_social' => 'Destinatario SAC'],
+        'traslado' => $shipment, 'bienes' => [['codigo' => 'P001', 'descripcion' => 'Producto de prueba', 'unidad' => 'NIU', 'cantidad' => '10.500000']],
+        'documentos_relacionados' => [['tipo' => '01', 'numero' => 'F001-123', 'emisor' => '20123456789']]];
+    if ($type === '31') {
+        $payload['remitente'] = ['tipo_documento' => '6', 'numero_documento' => '20333333331', 'razon_social' => 'Remitente SAC'];
+    }
+
     return $payload;
 }
