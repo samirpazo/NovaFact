@@ -95,6 +95,7 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
+            'timezone' => env('DB_TIMEZONE', env('APP_TIMEZONE', 'America/Lima')),
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
