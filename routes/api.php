@@ -2,8 +2,17 @@
 
 use App\Http\Controllers\Api\FacturacionController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\WebhookSubscriptionController;
 
 Route::middleware(['session.token'])->group(function () {
+    Route::prefix('webhooks/subscriptions')->group(function () {
+        Route::get('/', [WebhookSubscriptionController::class, 'index']);
+        Route::post('/', [WebhookSubscriptionController::class, 'store']);
+        Route::get('{id}', [WebhookSubscriptionController::class, 'show'])->whereNumber('id');
+        Route::patch('{id}', [WebhookSubscriptionController::class, 'update'])->whereNumber('id');
+        Route::delete('{id}', [WebhookSubscriptionController::class, 'destroy'])->whereNumber('id');
+        Route::post('{id}/rotate-secret', [WebhookSubscriptionController::class, 'rotate'])->whereNumber('id');
+    });
     Route::prefix('facturacion')->group(function () {
         Route::post('emitir-factura', [FacturacionController::class, 'emitFactura']);
         Route::post('boletas/resumen-diario', [FacturacionController::class, 'resumenBoletas']);

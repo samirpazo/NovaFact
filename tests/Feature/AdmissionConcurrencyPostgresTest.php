@@ -9,6 +9,19 @@ use App\Services\Sunat\GreTransport;
 use App\Services\Sunat\GrePollResult;
 use App\Services\Sunat\GreSendResult;
 use App\Models\Empresa;
+use App\Services\Webhooks\WebhookTransport;
+use App\Services\Webhooks\WebhookTransportResult;
+use App\Jobs\DeliverWebhookJob;
+
+final class ConcurrentWebhookTransport implements WebhookTransport
+{
+    public static string $path;
+    public function deliver(string $url,string $eventId,string $rawBody,string $secret): WebhookTransportResult
+    {
+        $h=fopen(self::$path,'c+');flock($h,LOCK_EX);$count=(int)stream_get_contents($h);rewind($h);ftruncate($h,0);fwrite($h,(string)($count+1));fflush($h);flock($h,LOCK_UN);fclose($h);
+        usleep(300000);return new WebhookTransportResult(true,false,204,null,null);
+    }
+}
 
 final class RecoveryCountingTransport implements GreTransport
 {
@@ -282,6 +295,8 @@ it('serializes concurrent credits on one origin and prevents accumulated over-cr
 });
 
 it('migrates legacy data without changing documents and survives down then up', function () {
+    $outboxMigration = require database_path('migrations/2026_09_13_000500_add_transactional_outbox_webhooks.php');
+    $outboxMigration->down();
     $migration = require database_path('migrations/2026_09_13_000100_add_admission_identity.php');
     $migration->down();
     $companyAId = (int) DB::table('McrCompanyConfig')->value('McrCompanyConfigID');
@@ -379,6 +394,7 @@ it('migrates legacy data without changing documents and survives down then up', 
         'McrStatus' => 'processing', 'McrCreatedAt' => now(), 'McrUpdatedAt' => now(),
     ]);
     expect(DB::table('McrIdempotency')->where('McrKey', 'historical-orphan-001')->count())->toBe(2);
+    $outboxMigration->up();
 });
 
 it('allows only one of two concurrent pollers to perform the remote action', function () {
@@ -414,6 +430,47 @@ it('uses the recovery due index and preserves all six document types through rec
         ->pluck('QUERY PLAN')->implode(' ');
     DB::statement('SET enable_seqscan = on');
     expect($after)->toBe($before)->and($plan)->toContain('IX_McrSunatSubmission_RecoveryDue');
+});
+
+it('claims one webhook delivery once across concurrent PostgreSQL workers',function(){
+    $op=app(AdmitElectronicDocument::class)->execute(pipelineContext('webhook-claim'),pipelinePayload())->toArray();
+    $attempt=app(\App\Services\Documents\DocumentLifecycle::class)->claim($op['document_id'],$op['submission_id']);
+    app(\App\Services\Documents\DocumentLifecycle::class)->finish($op['document_id'],$op['submission_id'],$attempt,new \App\Services\Documents\ProcessingResult(\App\Enums\DocumentState::Accepted,'0','Accepted'),1);
+    $event=DB::table('McrOutboxEvent')->first();$subscription=(int)DB::table('McrWebhookSubscription')->insertGetId([
+        'McrApiClientID'=>$event->McrApiClientID,'McrCompanyConfigID'=>$event->McrCompanyConfigID,'McrUrl'=>'https://example.com/hook','McrIsEnabled'=>true,
+        'McrEncryptedSecret'=>\Illuminate\Support\Facades\Crypt::encryptString('secret'),'McrEventTypes'=>json_encode(['document.accepted']),
+        'McrCreatedAt'=>now(),'McrUpdatedAt'=>now()],'McrWebhookSubscriptionID');
+    $delivery=(int)DB::table('McrWebhookDelivery')->insertGetId(['McrOutboxEventID'=>$event->McrOutboxEventID,'McrWebhookSubscriptionID'=>$subscription,
+        'McrStatus'=>'pending','McrNextAttemptAt'=>now()->subSecond(),'McrCreatedAt'=>now(),'McrUpdatedAt'=>now()],'McrWebhookDeliveryID');
+    ConcurrentWebhookTransport::$path=sys_get_temp_dir().'/webhook-claim-'.bin2hex(random_bytes(5));file_put_contents(ConcurrentWebhookTransport::$path,'0');$children=[];
+    foreach(range(1,2)as$_){$pid=pcntl_fork();if($pid===0){DB::disconnect(config('database.default'));(new DeliverWebhookJob($delivery))->handle(new ConcurrentWebhookTransport,app(\App\Services\Webhooks\WebhookBackoffPolicy::class));exit(0);}$children[]=$pid;}
+    foreach($children as$pid)pcntl_waitpid($pid,$status);DB::disconnect(config('database.default'));
+    expect((int)file_get_contents(ConcurrentWebhookTransport::$path))->toBe(1)->and(DB::table('McrWebhookDeliveryAttempt')->count())->toBe(1)
+        ->and(DB::table('McrWebhookDelivery')->where('McrWebhookDeliveryID',$delivery)->value('McrStatus'))->toBe('delivered');unlink(ConcurrentWebhookTransport::$path);
+});
+
+it('deduplicates concurrent publication of the same document state version',function(){
+    $op=app(AdmitElectronicDocument::class)->execute(pipelineContext('event-race'),pipelinePayload())->toArray();
+    $attempt=app(\App\Services\Documents\DocumentLifecycle::class)->claim($op['document_id'],$op['submission_id']);
+    app(\App\Services\Documents\DocumentLifecycle::class)->finish($op['document_id'],$op['submission_id'],$attempt,new \App\Services\Documents\ProcessingResult(\App\Enums\DocumentState::Accepted,'0','Accepted'),1);
+    DB::table('McrOutboxEvent')->delete();$children=[];
+    foreach(range(1,2)as$_){$pid=pcntl_fork();if($pid===0){DB::disconnect(config('database.default'));$doc=McrDocument::findOrFail($op['document_id']);
+        app(\App\Services\Webhooks\DocumentIntegrationEventPublisher::class)->publish($doc,$op['submission_id'],\App\Enums\DocumentState::Accepted,(int)$doc->McrStateVersion);exit(0);}$children[]=$pid;}
+    foreach($children as$pid)pcntl_waitpid($pid,$status);DB::disconnect(config('database.default'));
+    expect(DB::table('McrOutboxEvent')->count())->toBe(1);
+});
+
+it('keeps historical documents event-free and uses PostgreSQL outbox indexes after down up',function(){
+    foreach(['01','03','07','08','09','31']as$i=>$type)DB::table('McrDocument')->insert(['McrCompanyConfigID'=>Empresa::value('McrCompanyConfigID'),
+        'McrDocumentType'=>$type,'McrSeriesCode'=>match($type){'01'=>'F001','03'=>'B001','07'=>'FC01','08'=>'FD01','09'=>'T001',default=>'V001'},
+        'McrCorrelative'=>1200+$i,'McrIssueDate'=>'2026-09-13','McrCurrencyCode'=>'PEN','McrCustomerDocumentType'=>'6','McrCustomerDocumentNumber'=>'20123456789',
+        'McrCustomerName'=>'Historical no outbox','McrTotalAmount'=>0,'McrStatus'=>'accepted','SecStatus'=>true,'CreateUserId'=>0,'CreateDate'=>now()]);
+    $migration=require database_path('migrations/2026_09_13_000500_add_transactional_outbox_webhooks.php');$migration->down();$migration->up();
+    expect(DB::table('McrDocument')->where('McrCorrelative','>=',1200)->where('McrStateVersion',0)->count())->toBe(6)->and(DB::table('McrOutboxEvent')->count())->toBe(0);
+    DB::statement('SET enable_seqscan=off');
+    $deliveryPlan=collect(DB::select('EXPLAIN SELECT * FROM "McrWebhookDelivery" WHERE "McrStatus"=? AND "McrNextAttemptAt"<=now()',['retrying']))->pluck('QUERY PLAN')->implode(' ');
+    $eventPlan=collect(DB::select('EXPLAIN SELECT * FROM "McrOutboxEvent" WHERE "McrFannedOutAt" IS NULL ORDER BY "McrOccurredAt" LIMIT 1'))->pluck('QUERY PLAN')->implode(' ');
+    DB::statement('SET enable_seqscan=on');expect($deliveryPlan)->toContain('IX_McrWebhookDelivery_Due')->and($eventPlan)->toContain('IX_McrOutboxEvent_Pending');
 });
 
 it('migrates historical references across companies and enforces the internal reference FK', function () {

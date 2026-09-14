@@ -37,10 +37,10 @@ final class PollSunatSubmissionJob implements ShouldQueue
             if ($sub->McrClaimedAt !== null && now()->diffInSeconds($sub->McrClaimedAt, true) < 120) return null;
             if ($sub->McrNextAttemptAt !== null && now()->isBefore($sub->McrNextAttemptAt)) return null;
             if ((int)$sub->McrPollCount >= RetryBackoffPolicy::MAX_POLLS) {
+                app(DocumentLifecycle::class)->transition((int)$sub->McrDocumentID,$this->submissionId,DocumentState::ManualReview);
                 DB::table('McrSunatSubmission')->where('McrSunatSubmissionID',$this->submissionId)->update([
                     'McrStatus'=>DocumentState::ManualReview->value,'McrManualReviewReason'=>'gre_poll_limit',
                     'McrFailureCategory'=>FailureCategory::RemotePending->value,'McrCompletedAt'=>now(),'McrUpdatedAt'=>now()]);
-                DB::table('McrDocument')->where('McrDocumentID',$sub->McrDocumentID)->update(['McrStatus'=>DocumentState::ManualReview->value,'UpdateDate'=>now()]);
                 return null;
             }
             $number=(int)$sub->McrAttemptNumber+1;

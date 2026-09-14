@@ -98,7 +98,8 @@ it('continues from only persisted submission data and accepts after a pending po
     DB::table('McrSunatSubmission')->where('McrSunatSubmissionID',$op->submissionId)->update(['McrNextAttemptAt'=>now()->subSecond()]);
     $transport2=Mockery::mock(GreTransport::class); $transport2->shouldReceive('poll')->once()->andReturn(new GrePollResult('0',base64_encode(greCdrZip('0','Aceptada'))));
     (new PollSunatSubmissionJob($op->submissionId))->handle($transport2,app(\App\Services\Sunat\GreCdrParser::class),app(DocumentLifecycle::class),app(\App\Services\Facturacion\ManagedFileService::class));
-    expect(McrDocument::find($op->documentId)->McrStatus)->toBe('accepted')->and(DB::table('McrSunatAttempt')->where('McrTransport','gre_poll')->count())->toBe(2);
+    expect(McrDocument::find($op->documentId)->McrStatus)->toBe('accepted')->and(DB::table('McrSunatAttempt')->where('McrTransport','gre_poll')->count())->toBe(2)
+        ->and(DB::table('McrOutboxEvent')->where('McrEventType','document.accepted')->count())->toBe(1);
 });
 
 it('classifies a ticket rejection and never confuses it with a pending result', function(){

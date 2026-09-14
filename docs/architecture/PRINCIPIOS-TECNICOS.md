@@ -22,6 +22,18 @@ Toda recuperación fiscal usa la empresa persistida en el documento/submission. 
 
 Las colas delayed mejoran latencia, pero no son la fuente de verdad del retry. La próxima acción, el checkpoint, los contadores y `NextAttemptAt` se persisten para que el reconciliador reconstruya la operación después de perder la cola o reiniciar workers.
 
+## Integración externa durable
+
+El estado fiscal nunca depende de la entrega de un webhook. La indisponibilidad, rechazo o dead letter de un consumidor no modifica ni revierte el documento.
+
+La entrega de webhooks es at-least-once; los consumidores deben ser idempotentes por `event_id` y aplicar únicamente versiones de estado posteriores a la última conocida.
+
+Evento y delivery son entidades distintas. Un evento representa un hecho inmutable y puede tener cero o múltiples deliveries e intentos.
+
+El payload de un evento publicado es inmutable. Los retries reutilizan el mismo `event_id` y los mismos bytes semánticos; sólo renuevan timestamp y firma.
+
+Los eventos externos se generan transaccionalmente con el hecho que representan. Actualizar el estado y registrar el outbox pertenecen al mismo commit PostgreSQL.
+
 ## Documentos con ticket
 
 Cuando SUNAT responde con ticket, el documento entra en `awaiting_sunat` y cada consulta se ejecuta mediante un delayed job que transporta IDs y persiste su intento. Ningún request ni worker mantiene bucles de polling o usa `sleep()`; un resultado desconocido se conserva recuperable y nunca se clasifica como rechazo fiscal.

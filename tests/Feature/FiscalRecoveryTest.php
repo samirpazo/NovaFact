@@ -100,5 +100,6 @@ it('reconciles with the company persisted on the document', function () {
         app(\App\Services\Documents\RecoveryEvidenceFactory::class),app(\App\Services\Documents\RetryBackoffPolicy::class),
         $consult,app(DocumentLifecycle::class));
     expect(McrDocument::find($op['document_id'])->McrStatus)->toBe('accepted')
-        ->and((int)DB::table('McrSunatSubmission')->value('McrReconciliationCount'))->toBe(1);
+        ->and((int)DB::table('McrSunatSubmission')->value('McrReconciliationCount'))->toBe(1)
+        ->and(DB::table('McrOutboxEvent')->where('McrEventType','document.accepted')->count())->toBe(1);
 });

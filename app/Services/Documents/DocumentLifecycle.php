@@ -7,12 +7,15 @@ use App\Enums\ProcessingCheckpoint;
 use App\Models\McrDocument;
 use Illuminate\Support\Facades\DB;
 use LogicException;
+use App\Services\Webhooks\DocumentIntegrationEventPublisher;
 
 class DocumentLifecycle
 {
-    public function transition(int $documentId, int $submissionId, DocumentState $next): void
+    public function __construct(private DocumentIntegrationEventPublisher $events) {}
+
+    public function transition(int $documentId, int $submissionId, DocumentState $next, bool $publish = true): void
     {
-        DB::transaction(function () use ($documentId, $submissionId, $next): void {
+        DB::transaction(function () use ($documentId, $submissionId, $next, $publish): void {
             $doc = McrDocument::lockForUpdate()->findOrFail($documentId);
             $submission = DB::table('McrSunatSubmission')->where('McrSunatSubmissionID', $submissionId)->lockForUpdate()->first();
             if (! $submission || (int) $submission->McrDocumentID !== $documentId) {
@@ -22,9 +25,11 @@ class DocumentLifecycle
             if (! $current->canTransitionTo($next)) {
                 throw new LogicException("Invalid document transition: {$current->value} -> {$next->value}");
             }
-            $doc->update(['McrStatus' => $next->value, 'UpdateDate' => now()]);
+            $version = (int)$doc->McrStateVersion + 1;
+            $doc->update(['McrStatus' => $next->value, 'McrStateVersion'=>$version, 'UpdateDate' => now()]);
             DB::table('McrSunatSubmission')->where('McrSunatSubmissionID', $submissionId)
                 ->update(['McrStatus' => $next->value, 'McrUpdatedAt' => now()]);
+            if ($publish) $this->events->publish($doc->fresh(), $submissionId, $next, $version);
         });
     }
 
@@ -59,7 +64,7 @@ class DocumentLifecycle
     public function finish(int $documentId, int $submissionId, int $attemptId, ProcessingResult $result, int $durationMs): void
     {
         DB::transaction(function () use ($documentId, $submissionId, $attemptId, $result, $durationMs): void {
-            $this->transition($documentId, $submissionId, $result->state);
+            $this->transition($documentId, $submissionId, $result->state, false);
             $documentValues = ['McrSunatCode' => $result->code, 'McrSunatDescription' => $result->description];
             if (in_array($result->state, [DocumentState::Accepted, DocumentState::AcceptedWithObservations, DocumentState::Rejected], true)) {
                 $documentValues['McrProcessingResult'] = json_encode($result->toArray(), JSON_THROW_ON_ERROR);
@@ -91,6 +96,8 @@ class DocumentLifecycle
                 'McrRawResponse' => json_encode($result->toArray(), JSON_THROW_ON_ERROR),
                 'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now(),
             ]);
+            $document = McrDocument::findOrFail($documentId);
+            $this->events->publish($document, $submissionId, $result->state, (int)$document->McrStateVersion);
         });
     }
 

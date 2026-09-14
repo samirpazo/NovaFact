@@ -150,11 +150,11 @@ final class ReconcileSunatSubmissionJob implements ShouldQueue
     private function manualReview(McrDocument $document, string $token, string $reason): void
     {
         DB::transaction(function () use ($document, $token, $reason): void {
+            app(DocumentLifecycle::class)->transition($document->getKey(), $this->submissionId, DocumentState::ManualReview);
             DB::table('McrSunatSubmission')->where('McrSunatSubmissionID', $this->submissionId)->where('McrClaimToken', $token)->update([
                 'McrStatus' => DocumentState::ManualReview->value, 'McrManualReviewReason' => $reason,
                 'McrClaimedAt' => null, 'McrClaimToken' => null, 'McrNextAttemptAt' => null, 'McrCompletedAt' => now(), 'McrUpdatedAt' => now(),
             ]);
-            $document->update(['McrStatus' => DocumentState::ManualReview->value, 'UpdateDate' => now()]);
         });
     }
 

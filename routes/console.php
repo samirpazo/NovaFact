@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('billing:reconcile --limit=100')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('webhooks:dispatch --limit=100')->everyMinute()->withoutOverlapping();
