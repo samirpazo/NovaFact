@@ -25,9 +25,13 @@ class InvoicePdfService
             $transparentLogo = Storage::disk('local')->get($companyConfig->McrLogoPath);
         }
 
-        $taxRate = (float) $invoice->getMtoOperGravadas() > 0
-            ? round(((float) $invoice->getMtoIGV() / (float) $invoice->getMtoOperGravadas()) * 100, 2)
-            : 0;
+        $firstDetail = ($invoice->getDetails() ?? [])[0] ?? null;
+        $taxRate = $firstDetail?->getPorcentajeIgv();
+        if ($taxRate === null) {
+            $taxRate = (float) $invoice->getMtoOperGravadas() > 0
+                ? round(((float) $invoice->getMtoIGV() / (float) $invoice->getMtoOperGravadas()) * 100, 2)
+                : 0;
+        }
         $html = $htmlReport->render($invoice, [
             'system' => [
                 'logo' => $transparentLogo,
