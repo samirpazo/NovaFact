@@ -28,8 +28,6 @@ Route::middleware(['session.token'])->group(function () {
         Route::post('configuracion/empresa/logo', [FacturacionController::class, 'updateCompanyLogo']);
         Route::put('configuracion/empresa/credenciales-sol', [FacturacionController::class, 'updateSolCredentials']);
         Route::post('configuracion/empresa/certificado', [FacturacionController::class, 'updateCertificate']);
-        Route::get('documentos/{documentId}/ticket-80mm', [FacturacionController::class, 'ticket80mm'])
-            ->whereNumber('documentId');
         Route::post('emitir-guia', [FacturacionController::class, 'emitGuia']);
         Route::get('historial-guia/{ticket}', [FacturacionController::class, 'consultarHistorialGuia']);
         Route::get('archivo/{tipo}/{nombre}', [FacturacionController::class, 'descargarArchivo'])

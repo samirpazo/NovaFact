@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFacturaRequest;
 use App\Models\Empresa;
-use App\Services\Facturacion\InvoicePdfService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -132,21 +131,6 @@ class FacturacionController extends Controller
         DB::table('McrCompanyConfig')->where('McrCompanyConfigID', $company->McrCompanyConfigID)->update(['McrLogoPath' => $path, 'UpdateDate' => now()]);
 
         return response()->json(['success' => true]);
-    }
-
-    public function ticket80mm(int $documentId, InvoicePdfService $pdfService)
-    {
-        $document = DB::table('McrDocument')->where('McrDocumentID', $documentId)->whereIn('McrStatus', ['accepted', 'accepted_with_observations'])->first();
-        if (! $document) {
-            return response()->json(['message' => 'Comprobante no encontrado'], 404);
-        }
-        $lines = DB::table('McrDocumentLine')->where('McrDocumentID', $documentId)->orderBy('McrLineNumber')->get();
-        $company = DB::table('McrCompanyConfig')->where('McrCompanyConfigID', $document->McrCompanyConfigID)->first();
-
-        return response($pdfService->generateTicketFromStored($document, $lines, $company), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="'.$document->McrSeriesCode.'-'.$document->McrCorrelative.'-80mm.pdf"',
-        ]);
     }
 
     public function emitGuia(Request $request): JsonResponse
