@@ -114,9 +114,9 @@
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/FacturacionController.php": {
-    "mtime": 1789443904.9166152,
-    "seen": 1789446644.8169558,
-    "ast_hash": "1d8a8c18e7b19979745c320e1a8f2966",
+    "mtime": 1789346876.8740191,
+    "seen": 1789349925.048262,
+    "ast_hash": "79c66b752c873bd6549496d3cf93c223",
     "semantic_hash": ""
   },
   "app/Http/Controllers/Api/WebhookSubscriptionController.php": {
@@ -144,9 +144,9 @@
     "semantic_hash": ""
   },
   "app/Http/Requests/StoreFacturaRequest.php": {
-    "mtime": 1789384671.9384031,
-    "seen": 1789446644.816959,
-    "ast_hash": "6fe0d4404aa92ec0978bb0dd3b05f65b",
+    "mtime": 1789326984.3598828,
+    "seen": 1789349925.048264,
+    "ast_hash": "b91d0ba88a8a073ae8effed651ea625d",
     "semantic_hash": ""
   },
   "app/Jobs/DeliverWebhookJob.php": {
@@ -162,9 +162,9 @@
     "semantic_hash": ""
   },
   "app/Jobs/ProcessElectronicDocumentJob.php": {
-    "mtime": 1789386254.5614612,
-    "seen": 1789446644.816961,
-    "ast_hash": "254be91b8a12b8a8cf327b5dc5f75f73",
+    "mtime": 1789344748.8736298,
+    "seen": 1789349925.048266,
+    "ast_hash": "fcaef2f2df9ada0df799b8449294a553",
     "semantic_hash": ""
   },
   "app/Jobs/ReconcileSunatSubmissionJob.php": {
@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "app/Models/McrDocument.php": {
-    "mtime": 1789386254.5638723,
-    "seen": 1789446644.8169641,
-    "ast_hash": "d63dd6f65e4c7d98dcc61dbef9dc9d06",
+    "mtime": 1789192413.4445589,
+    "seen": 1789349925.048268,
+    "ast_hash": "5f1c96f14d49dfcfbedb574a3ac185a5",
     "semantic_hash": ""
   },
   "app/Models/McrOutboxEvent.php": {
@@ -282,9 +282,9 @@
     "semantic_hash": ""
   },
   "app/Services/Documents/AdmitElectronicDocument.php": {
-    "mtime": 1789386254.6147718,
-    "seen": 1789446644.8169742,
-    "ast_hash": "1dda4f940d7fd87d711650d48c63002c",
+    "mtime": 1789344242.497132,
+    "seen": 1789349925.048275,
+    "ast_hash": "36b00f985496ace7f1f91b6a24dbeab0",
     "semantic_hash": ""
   },
   "app/Services/Documents/ArtifactRecoveryService.php": {
@@ -294,9 +294,9 @@
     "semantic_hash": ""
   },
   "app/Services/Documents/DespatchPayloadNormalizer.php": {
-    "mtime": 1789386254.64758,
-    "seen": 1789446644.816975,
-    "ast_hash": "8e4f26819f719add76a649a68f12ff96",
+    "mtime": 1789334633.439939,
+    "seen": 1789349925.048276,
+    "ast_hash": "d6687a65e57400c36b0f94afce107d5b",
     "semantic_hash": ""
   },
   "app/Services/Documents/DocumentLifecycle.php": {
@@ -324,9 +324,9 @@
     "semantic_hash": ""
   },
   "app/Services/Documents/NoteReferenceResolver.php": {
-    "mtime": 1789384672.0670338,
-    "seen": 1789446644.816979,
-    "ast_hash": "0424f91a8ac69d5c5e3f2411c9e7056e",
+    "mtime": 1789327290.4196334,
+    "seen": 1789349925.048279,
+    "ast_hash": "446f0bf96b481e7c7dd2c65cb8c17cda",
     "semantic_hash": ""
   },
   "app/Services/Documents/PayloadCodec.php": {
@@ -342,9 +342,9 @@
     "semantic_hash": ""
   },
   "app/Services/Documents/Processors/AbstractDespatchProcessor.php": {
-    "mtime": 1789386254.6905613,
-    "seen": 1789446644.81698,
-    "ast_hash": "6b120b29a78660d41f8433260d0382b3",
+    "mtime": 1789343985.36158,
+    "seen": 1789349925.04828,
+    "ast_hash": "cae8e91a2e1edcca7134793e8964a878",
     "semantic_hash": ""
   },
   "app/Services/Documents/Processors/CarrierDespatchProcessor.php": {
@@ -402,9 +402,9 @@
     "semantic_hash": ""
   },
   "app/Services/Documents/SalesPayloadNormalizer.php": {
-    "mtime": 1789384671.9815993,
-    "seen": 1789446644.816986,
-    "ast_hash": "45deb6d34c4d01c2c405f003f4cbae90",
+    "mtime": 1789327373.37676,
+    "seen": 1789349925.0482838,
+    "ast_hash": "709675453c470971222cd897c348d8b4",
     "semantic_hash": ""
   },
   "app/Services/Documents/SubmissionCheckpoint.php": {
@@ -432,21 +432,21 @@
     "semantic_hash": ""
   },
   "app/Services/Facturacion/DespatchService.php": {
-    "mtime": 1789386254.7186067,
-    "seen": 1789446644.816989,
-    "ast_hash": "30d0fcecfcfc51d2cc7b4c00a35e0032",
+    "mtime": 1789335000.425863,
+    "seen": 1789349925.048287,
+    "ast_hash": "36b576f6bb136d0bca057e58a73ac8e2",
     "semantic_hash": ""
   },
   "app/Services/Facturacion/FacturaService.php": {
-    "mtime": 1789386254.7520053,
-    "seen": 1789446644.816989,
-    "ast_hash": "5baeb3177963b4587a12b056476f3504",
+    "mtime": 1789344181.31577,
+    "seen": 1789349925.048287,
+    "ast_hash": "97e41e05d701363b28dabb5b5251f066",
     "semantic_hash": ""
   },
   "app/Services/Facturacion/InvoicePdfService.php": {
-    "mtime": 1789384736.7972167,
-    "seen": 1789446644.81699,
-    "ast_hash": "d5a0aae9320be178bf72c076e069dd35",
+    "mtime": 1789325483.0128498,
+    "seen": 1789349925.048288,
+    "ast_hash": "a05232fa0ac4294b4a80faeeeaebaef4",
     "semantic_hash": ""
   },
   "app/Services/Facturacion/ManagedFileService.php": {
@@ -456,9 +456,9 @@
     "semantic_hash": ""
   },
   "app/Services/Facturacion/NoteService.php": {
-    "mtime": 1789386254.8107595,
-    "seen": 1789446644.816992,
-    "ast_hash": "1d4f4bccb4cfdb39f89ad5d16a917b88",
+    "mtime": 1789344181.3650148,
+    "seen": 1789349925.048289,
+    "ast_hash": "1a72bc335b6babbd06fec7c77e619129",
     "semantic_hash": ""
   },
   "app/Services/Facturacion/VoidedDocumentService.php": {
@@ -540,9 +540,9 @@
     "semantic_hash": ""
   },
   "app/Services/Webhooks/DocumentIntegrationEventPublisher.php": {
-    "mtime": 1789386254.8200133,
-    "seen": 1789446644.8170009,
-    "ast_hash": "b03705254552e01d9ae49fda6202b0b3",
+    "mtime": 1789345346.1545608,
+    "seen": 1789349925.048295,
+    "ast_hash": "54ba43fcda6b14c7c7839aed666679bf",
     "semantic_hash": ""
   },
   "app/Services/Webhooks/HttpWebhookTransport.php": {
@@ -570,9 +570,9 @@
     "semantic_hash": ""
   },
   "app/Services/Webhooks/WebhookFanoutService.php": {
-    "mtime": 1789353190.6569982,
-    "seen": 1789446644.817004,
-    "ast_hash": "64c175bd270ddf54ec63f3946822c072",
+    "mtime": 1789345469.0009084,
+    "seen": 1789349925.048298,
+    "ast_hash": "c4bf6b98b85fbea49566ea2bd4d82bbf",
     "semantic_hash": ""
   },
   "app/Services/Webhooks/WebhookSignature.php": {
@@ -582,9 +582,9 @@
     "semantic_hash": ""
   },
   "app/Services/Webhooks/WebhookSubscriptionService.php": {
-    "mtime": 1789353117.238238,
-    "seen": 1789446644.8170052,
-    "ast_hash": "3d03b19fdd3ed39a2d4c90a63b278bc2",
+    "mtime": 1789345405.9869452,
+    "seen": 1789349925.048299,
+    "ast_hash": "b9c09f2f96f31f510418364f8e1317c4",
     "semantic_hash": ""
   },
   "app/Services/Webhooks/WebhookTransport.php": {
@@ -654,9 +654,9 @@
     "semantic_hash": ""
   },
   "config/database.php": {
-    "mtime": 1789355024.5087676,
-    "seen": 1789446644.817013,
-    "ast_hash": "f90b2207deb5f86da063b48962d5e7fd",
+    "mtime": 1789188085.2815628,
+    "seen": 1789349925.048304,
+    "ast_hash": "51a55b5dd43faba889376f90d19ef41b",
     "semantic_hash": ""
   },
   "config/filesystems.php": {
@@ -930,21 +930,21 @@
     "semantic_hash": ""
   },
   "resources/views/docs.blade.php": {
-    "mtime": 1789443915.554459,
-    "seen": 1789446644.817045,
-    "ast_hash": "2a66864722082dd8ae51d13f9fc1e86c",
+    "mtime": 1789237199.7497659,
+    "seen": 1789349925.0483258,
+    "ast_hash": "1766198e03a8ea33f3ebc2631fe17c81",
     "semantic_hash": ""
   },
   "resources/views/welcome.blade.php": {
-    "mtime": 1789351987.5047343,
-    "seen": 1789446644.817046,
-    "ast_hash": "68bf0bb9b298702b73ad3c5df8c3851d",
+    "mtime": 1789237372.5636325,
+    "seen": 1789349925.0483258,
+    "ast_hash": "22b56aef262854c04ccd9bf7dc36c994",
     "semantic_hash": ""
   },
   "routes/api.php": {
-    "mtime": 1789443879.4261563,
-    "seen": 1789446644.817046,
-    "ast_hash": "10928fb75d1b861b75136997902e6f1a",
+    "mtime": 1789345406.1201665,
+    "seen": 1789349925.048327,
+    "ast_hash": "e93bd81ef4376cf604a003925dd4afa8",
     "semantic_hash": ""
   },
   "routes/console.php": {
@@ -960,9 +960,9 @@
     "semantic_hash": ""
   },
   "tests/Feature/AdmissionConcurrencyPostgresTest.php": {
-    "mtime": 1789386372.020819,
-    "seen": 1789446644.817048,
-    "ast_hash": "7763548fb25a5a9829ad0868742baaa5",
+    "mtime": 1789345853.4849722,
+    "seen": 1789349925.048328,
+    "ast_hash": "1d85fc947e6caaba7920458d81034814",
     "semantic_hash": ""
   },
   "tests/Feature/BillingSecurityTest.php": {
@@ -978,9 +978,9 @@
     "semantic_hash": ""
   },
   "tests/Feature/DocumentPipelineTest.php": {
-    "mtime": 1789386255.0596967,
-    "seen": 1789446644.8170502,
-    "ast_hash": "25764fa67cfaffcae62f2f91bac83708",
+    "mtime": 1789346876.925333,
+    "seen": 1789349925.04833,
+    "ast_hash": "df82ccb0435901f3598090084eb2d06c",
     "semantic_hash": ""
   },
   "tests/Feature/ExampleTest.php": {
@@ -1002,9 +1002,9 @@
     "semantic_hash": ""
   },
   "tests/Feature/WebhookOutboxTest.php": {
-    "mtime": 1789386331.1366034,
-    "seen": 1789446644.8170528,
-    "ast_hash": "029fbe42a560f3849023a05107f6147d",
+    "mtime": 1789346103.6850145,
+    "seen": 1789349925.048332,
+    "ast_hash": "dc84c9061a2adb90116d35184dac9fcf",
     "semantic_hash": ""
   },
   "tests/Pest.php": {
@@ -1014,9 +1014,9 @@
     "semantic_hash": ""
   },
   "tests/Support/PipelineDatabase.php": {
-    "mtime": 1789386255.1782277,
-    "seen": 1789446644.817054,
-    "ast_hash": "7712b9edd81b9a93e192ddb9009a5e7d",
+    "mtime": 1789334988.3016777,
+    "seen": 1789349925.0483332,
+    "ast_hash": "01093607ccc1e0ff20bd3756115c4fae",
     "semantic_hash": ""
   },
   "tests/TestCase.php": {
@@ -1044,9 +1044,9 @@
     "semantic_hash": ""
   },
   "tests/Unit/FacturaTaxRateTest.php": {
-    "mtime": 1789386255.1866286,
-    "seen": 1789446644.8170571,
-    "ast_hash": "f1310a25502837e565b697102bca2d5a",
+    "mtime": 1789344291.1886208,
+    "seen": 1789349925.048335,
+    "ast_hash": "2027a6249267671c9db3fff94a05c7a6",
     "semantic_hash": ""
   },
   "vite.config.js": {
@@ -1062,9 +1062,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1789356646.0431833,
-    "seen": 1789446644.817058,
-    "ast_hash": "30995e2d98a5b250f42b82147550c0a7",
+    "mtime": 1780526967.0,
+    "seen": 1789349925.048337,
+    "ast_hash": "c9fd29cc7c9057820aebcdcd6bbddca3",
     "semantic_hash": ""
   },
   "docs/PRODUCCION.md": {
@@ -1116,9 +1116,9 @@
     "semantic_hash": ""
   },
   "docs/architecture/PRINCIPIOS-TECNICOS.md": {
-    "mtime": 1789444074.7513945,
-    "seen": 1789446644.817065,
-    "ast_hash": "9ee4d61ccffdb49fabe55571838016cb",
+    "mtime": 1789345965.4001641,
+    "seen": 1789349925.048341,
+    "ast_hash": "7fb30c18efc32be504b8538cad44effc",
     "semantic_hash": ""
   },
   "docs/ejemplos/boleta_ejemplo.md": {
@@ -1155,60 +1155,6 @@
     "mtime": 1780526967.0,
     "seen": 1789349925.0483441,
     "ast_hash": "b6216d61c03e6ce0c9aea6ca7808f7ca",
-    "semantic_hash": ""
-  },
-  "app/Http/Controllers/Api/EstablishmentController.php": {
-    "mtime": 1789443879.358777,
-    "seen": 1789446644.8169549,
-    "ast_hash": "dc4410ef45b739a5b4194aa4615ab517",
-    "semantic_hash": ""
-  },
-  "app/Models/McrEstablishment.php": {
-    "mtime": 1789440425.5829947,
-    "seen": 1789446644.8169641,
-    "ast_hash": "024b5608e8b934000b651c679fe28fff",
-    "semantic_hash": ""
-  },
-  "app/Services/Documents/EstablishmentResolver.php": {
-    "mtime": 1789384671.8946311,
-    "seen": 1789446644.8169768,
-    "ast_hash": "7de03e2b3f91d3d4fa573a6a5e2ff1bb",
-    "semantic_hash": ""
-  },
-  "app/Services/Facturacion/FiscalCompanyFactory.php": {
-    "mtime": 1789386254.7560542,
-    "seen": 1789446644.81699,
-    "ast_hash": "f3ed8995b462cb0f80107653fb22c6e9",
-    "semantic_hash": ""
-  },
-  "database/migrations/2026_09_14_000000_add_fiscal_establishments.php": {
-    "mtime": 1789384578.9580612,
-    "seen": 1789446644.817035,
-    "ast_hash": "5bfe4e7e90962aa10876fae3b9006f72",
-    "semantic_hash": ""
-  },
-  "tests/Feature/MultibranchBillingTest.php": {
-    "mtime": 1789446586.5955515,
-    "seen": 1789446644.817051,
-    "ast_hash": "7506811b94882270e2b1506c9319085a",
-    "semantic_hash": ""
-  },
-  "docs/architecture/FASE-6.6A-AUDITORIA-MULTISUCURSAL.md": {
-    "mtime": 1789383886.2926586,
-    "seen": 1789446644.8170629,
-    "ast_hash": "3a58fe584c882440668a4f0ffb8771a7",
-    "semantic_hash": ""
-  },
-  "docs/architecture/FASE-6.6B-MULTISUCURSAL.md": {
-    "mtime": 1789446577.943882,
-    "seen": 1789446644.817064,
-    "ast_hash": "acbac45764ce71f91069bc4f7a871fa9",
-    "semantic_hash": ""
-  },
-  "public/logo-nova.svg": {
-    "mtime": 1789351580.5095527,
-    "seen": 1789446644.817069,
-    "ast_hash": "fb06352d224edc4e3557226dc8ce62b8",
     "semantic_hash": ""
   }
 }

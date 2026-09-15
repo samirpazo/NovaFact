@@ -15,8 +15,17 @@ final class EstablishmentController extends Controller
     {
         $company = $this->company($request);
 
-        return response()->json(['data' => McrEstablishment::where('McrCompanyConfigID', $company->getKey())
-            ->orderBy('McrEstablishmentID')->get()->map(fn ($item) => $this->view($item))]);
+        $query = McrEstablishment::where('McrCompanyConfigID', $company->getKey())->where('SecStatus', true);
+        if ($request->filled('external_code')) {
+            $request->validate(['external_code' => ['string', 'max:100', 'regex:/^[A-Za-z0-9._:-]+$/']]);
+            $query->where('McrExternalCode', $request->string('external_code')->trim()->value());
+        }
+        if ($request->boolean('default')) {
+            $query->where('McrIsDefault', true)->where('McrIsActive', true);
+        }
+
+        return response()->json(['data' => $query->orderBy('McrEstablishmentID')->get()
+            ->map(fn ($item) => $this->view($item))]);
     }
 
     public function store(Request $request): JsonResponse

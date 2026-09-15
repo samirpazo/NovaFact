@@ -24,6 +24,10 @@ conserva explícitamente su establecimiento y un snapshot inmutable. Cambiar la 
 altera XML, PDF, recuperación ni eventos históricos. Incorporar establecimientos no cambia idempotency key
 ni external reference.
 
+Toda Company factura mediante un Establishment. Una empresa de una sola sede utiliza normalmente el
+establecimiento `DEFAULT`, como simplificación visual. El correlativo pertenece exclusivamente a su fila
+`McrSeries`; la configuración general de Company no administra series globales.
+
 ## Ambigüedad y resultado fiscal
 
 Nunca se reenvía automáticamente una submission cuyo resultado remoto sea ambiguo. Desde que comienza el contacto con SUNAT, una interrupción sin respuesta verificable exige consulta/reconciliación o revisión manual. El texto de una excepción no constituye evidencia de que SUNAT no recibió el documento.

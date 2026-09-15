@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFacturaRequest;
 use App\Models\Empresa;
-use App\Models\McrSeries;
 use App\Services\Facturacion\InvoicePdfService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,16 +30,6 @@ class FacturacionController extends Controller
         if (! $company) {
             return response()->json(['company' => null]);
         }
-        $series = DB::table('McrSeries')->leftJoin('McrEstablishment', 'McrEstablishment.McrEstablishmentID', '=', 'McrSeries.McrEstablishmentID')
-            ->where('McrSeries.McrCompanyConfigID', $company->McrCompanyConfigID)
-            ->where('McrSeries.SecStatus', true)->orderBy('McrDocumentType')->get()->map(fn ($row) => [
-                'document_type' => $row->McrDocumentType,
-                'series_code' => $row->McrSeriesCode,
-                'next_correlative' => (int) $row->McrNextCorrelative,
-                'active' => (bool) $row->McrIsActive,
-                'establishment' => $row->McrExternalCode,
-            ])->values();
-
         return response()->json(['company' => [
             'id' => $company->McrCompanyConfigID, 'business_name' => $company->McrBusinessName,
             'trade_name' => $company->McrTradeName, 'ruc' => $company->McrRuc, 'address' => $company->McrAddress,
@@ -55,7 +44,6 @@ class FacturacionController extends Controller
             'special_tax_regime' => (bool) ($company->McrSpecialTaxRegime ?? false),
             'has_sol_credentials' => ! empty($company->McrSolUser) && ! empty($company->McrSolPassword),
             'has_certificate' => ! empty($company->McrCertificateName),
-            'series' => $series,
         ]]);
     }
 
@@ -130,43 +118,6 @@ class FacturacionController extends Controller
         $company->save();
 
         return response()->json(['success' => true, 'has_certificate' => true]);
-    }
-
-    public function updateSeries(Request $request): JsonResponse
-    {
-        $data = $request->validate(['series' => ['required', 'array', 'min:1'], 'series.*.document_type' => ['required', 'in:01,03,07,08,09,31'], 'series.*.series_code' => ['required', 'regex:/^[A-Z][A-Z0-9]{3}$/'], 'series.*.next_correlative' => ['required', 'integer', 'min:1'], 'series.*.active' => ['required', 'boolean'], 'series.*.establishment' => ['nullable', 'string', 'max:100']]);
-        $company = Empresa::where('McrIsActive', true)->where('SecStatus', true)->where('McrEnvironment', 'beta')->first();
-        if (! $company) {
-            return response()->json(['message' => 'No hay una empresa Beta activa configurada.'], 422);
-        }
-        DB::transaction(function () use ($data, $company) {
-            foreach ($data['series'] as $item) {
-                $establishment = app(\App\Services\Documents\EstablishmentResolver::class)->resolve($company, ['establishment' => $item['establishment'] ?? null]);
-                $requiredPrefix = match ($item['document_type']) {
-                    '01' => 'F', '03' => 'B', '07','08' => null, '09' => 'T', '31' => 'V'
-                };
-                abort_if($requiredPrefix !== null && ! str_starts_with($item['series_code'], $requiredPrefix), 422, 'La serie no corresponde al tipo de documento.');
-                $maxUsed = (int) DB::table('McrDocument')->where('McrCompanyConfigID', $company->getKey())->where('McrDocumentType', $item['document_type'])->where('McrSeriesCode', $item['series_code'])->max('McrCorrelative');
-                abort_if($item['next_correlative'] <= $maxUsed, 422, 'El próximo correlativo debe ser mayor al último comprobante emitido.');
-                $series = McrSeries::firstOrNew(['McrCompanyConfigID' => $company->getKey(), 'McrDocumentType' => $item['document_type'], 'McrSeriesCode' => $item['series_code']]);
-                if ($series->exists && $series->McrEstablishmentID && (int) $series->McrEstablishmentID !== (int) $establishment->getKey()) {
-                    abort(422, 'Una serie existente no puede moverse a otro establecimiento.');
-                }
-                if (! $series->exists) {
-                    $series->CreateUserId = 0;
-                    $series->CreateDate = now();
-                }
-                $series->McrNextCorrelative = $item['next_correlative'];
-                $series->McrEstablishmentID = $establishment->getKey();
-                $series->McrIsActive = $item['active'];
-                $series->SecStatus = true;
-                $series->UpdateUserId = 0;
-                $series->UpdateDate = now();
-                $series->save();
-            }
-        });
-
-        return $this->companyConfig();
     }
 
     public function updateCompanyLogo(Request $request): JsonResponse

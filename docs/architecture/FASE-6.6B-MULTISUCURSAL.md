@@ -16,6 +16,8 @@ cruces entre compañías.
 Cada serie pertenece a un establecimiento. La unicidad continúa siendo
 `company + document_type + series`; la serie identifica inequívocamente el local y su propia fila mantiene
 el contador con `lockForUpdate()`. F001 y F002 avanzan independientemente. La emisión nunca crea series.
+No existe una modalidad paralela Company → Series: el correlativo vive únicamente en `McrSeries`, que
+pertenece a `McrEstablishment`, y éste a `McrCompanyConfig`.
 
 El payload acepta `establishment` con el external code. Se valida antes de serie y correlativo. Si se omite,
 sólo se usa un default activo inequívoco; nunca “el primero”. El local resuelto entra en el payload canónico:
@@ -37,7 +39,12 @@ llegada, que siguen siendo datos logísticos independientes.
 Outbox v1 añade `data.establishment` con `external_code`, `sunat_code` y `name`. No cambian event ID,
 state version, HMAC ni scope de webhook. Los endpoints autenticados de establecimientos permiten listar,
 crear, actualizar y desactivar; no hay borrado destructivo. ExternalCode y código SUNAT quedan bloqueados
-cuando existen documentos. La asignación administrativa de series acepta el external code.
+cuando existen documentos. La administración de series debe partir siempre de un establecimiento explícito;
+el endpoint legacy `empresa/series`, que además permitía editar correlativos, fue retirado.
+
+La configuración general de Company no administra ni devuelve series. La consulta read-only de un local
+usa `GET /api/facturacion/configuracion/establecimientos`, filtrable por `external_code` o `default=1`, y
+expone sólo identidad fiscal, dirección, ubigeo, estado y series 01/03; nunca secretos de Company.
 
 La migración crea `DEFAULT/0000` por empresa sólo si dirección y ubigeo existentes permiten un default
 inequívoco; vincula sus series/documentos y congela snapshot. Datos incompletos permanecen históricos con

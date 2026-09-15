@@ -1,42 +1,42 @@
-# Graph Report - sunfacturation-main  (2026-09-14)
+# Graph Report - sunfacturation-main  (2026-09-13)
 
 ## Corpus Check
-- 200 files · ~51,128 words
+- 192 files · ~45,146 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 23 file(s) not represented in the graph (top: (none) 17, .example 2, .podman 1)
 
 ## Summary
-- 975 nodes · 1927 edges · 97 communities (47 shown, 12 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 41 edges (avg confidence: 0.85)
+- 925 nodes · 1829 edges · 76 communities (44 shown, 8 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 45 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `67bb9046`
+- Built from commit: `76662c2a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- PipelineDatabase.php
-- Illuminate\Http\Request
 - McrDocument
-- Illuminate\Database\Schema\Blueprint
-- WebhookTransport
+- Illuminate\Http\Request
+- PollSunatSubmissionJob.php
+- Illuminate\Database\Migrations\Migration
+- AppServiceProvider.php
 - DocumentState
 - DecimalAmount
 - package.json
 - DespatchPayloadNormalizer
-- Fase 6.6A — Auditoría multisucursal / multiestablecimiento
 - GreenterService
+- NoteService
 - Illuminate\Database\Eloquent\Model
 - DespatchData
 - Empresa
 - RuntimeException
 - Fase 2 — identidad, idempotencia y numeración
 - Fase 5 — Resiliencia fiscal
-- .handle
-- AppServiceProvider.php
+- FacturaData
+- SubmissionCheckpoint
 - Fase 6 — Transactional Outbox y Webhooks
-- SoapStatusConsultant
+- NoteService.php
 - Auditoría previa y plan de evolución — 2026-09-13
 - User
 - InvoicePdfService.php
@@ -47,14 +47,14 @@
 - composer.json
 - scripts
 - Fase 1 — pipeline de ventas existente
-- SunFacturation
+- README.md
 - UserFactory.php
 - require-dev
 - EmpresaRepository
-- GrePollResult
+- GreSendResult
 - config
 - Fase 4 — Guía de Remisión Electrónica 09/31
-- WebhookDestinationPolicy
+- GrePollResult
 - Ejemplo: Boleta de Venta Electrónica (03)
 - Ejemplo: Factura Electrónica (01)
 - Ejemplo: Guía de Remisión Remitente (09)
@@ -68,17 +68,10 @@
 - Despliegue VPS con Podman
 - Illuminate\Foundation\Testing\TestCase
 - docker-entrypoint-podman.sh
-- SunatGreTransport.php
-- WebhookOutboxTest.php
-- Illuminate\Support\Facades\Schema
-- Illuminate\Database\Migrations\Migration
-- Fase 6.6B — Multisucursal fiscal
-- WebhookSignature
-- 2026_09_13_000100_add_admission_identity.php
 
 ## God Nodes (most connected - your core abstractions)
-1. `Empresa` - 84 edges
-2. `McrDocument` - 64 edges
+1. `Empresa` - 79 edges
+2. `McrDocument` - 61 edges
 3. `DocumentState` - 33 edges
 4. `ProcessingResult` - 33 edges
 5. `ProcessingCheckpoint` - 25 edges
@@ -91,95 +84,99 @@
 ## Surprising Connections (you probably didn't know these)
 - `persistedOriginal()` --references--> `McrDocument`  [EXTRACTED]
   tests/Support/PipelineDatabase.php → app/Models/McrDocument.php
+- `RecoveryCountingTransport` --implements--> `GreTransport`  [EXTRACTED]
+  tests/Feature/AdmissionConcurrencyPostgresTest.php → app/Services/Sunat/GreTransport.php
 - `completedWebhookDocument()` --calls--> `DocumentState`  [EXTRACTED]
   tests/Feature/WebhookOutboxTest.php → app/Enums/DocumentState.php
-- `secondEstablishment()` --calls--> `McrEstablishment`  [EXTRACTED]
-  tests/Feature/MultibranchBillingTest.php → app/Models/McrEstablishment.php
 - `pipelineContext()` --calls--> `AdmissionContext`  [EXTRACTED]
   tests/Support/PipelineDatabase.php → app/Services/Documents/AdmissionContext.php
-- `completedWebhookDocument()` --calls--> `ProcessingResult`  [EXTRACTED]
-  tests/Feature/WebhookOutboxTest.php → app/Services/Documents/ProcessingResult.php
+- `admittedAwaitingGre()` --references--> `AdmissionResult`  [EXTRACTED]
+  tests/Feature/DespatchPipelineTest.php → app/Services/Documents/AdmissionResult.php
 
 ## Import Cycles
 - None detected.
 
-## Communities (97 total, 12 thin omitted)
+## Communities (76 total, 8 thin omitted)
 
-### Community 0 - "PipelineDatabase.php"
-Cohesion: 0.20
-Nodes (7): AdmissionResult, admittedAwaitingGre(), despatchPayload(), notePayload(), persistedOriginal(), pipelineContext(), pipelinePayload()
+### Community 0 - "McrDocument"
+Cohesion: 0.06
+Nodes (30): DocumentType, Throwable, ProcessElectronicDocumentJob, McrApiClient, McrDocument, McrSeries, AdmissionContext, AdmissionResult (+22 more)
 
 ### Community 1 - "Illuminate\Http\Request"
-Cohesion: 0.08
-Nodes (16): DocumentIntegrationEvent, EstablishmentController, FacturacionController, WebhookSubscriptionController, Controller, McrWebhookSubscription, WebhookSubscriptionService, Illuminate\Foundation\Application (+8 more)
+Cohesion: 0.07
+Nodes (21): DocumentIntegrationEvent, self, FacturacionController, WebhookSubscriptionController, Controller, ValidateBillingToken, ValidateSessionToken, McrWebhookSubscription (+13 more)
 
-### Community 2 - "McrDocument"
+### Community 2 - "PollSunatSubmissionJob.php"
+Cohesion: 0.07
+Nodes (21): DispatchWebhooks, ReconcileBilling, RedeliverWebhook, ReplayWebhookEvent, ResetBetaBilling, WebhookStatus, DeliverWebhookJob, PollSunatSubmissionJob (+13 more)
+
+### Community 3 - "Illuminate\Database\Migrations\Migration"
 Cohesion: 0.05
-Nodes (40): DispatchWebhooks, ReconcileBilling, RedeliverWebhook, ReplayWebhookEvent, ResetBetaBilling, WebhookStatus, DeliverWebhookJob, PollSunatSubmissionJob (+32 more)
+Nodes (4): down(), Illuminate\Database\Migrations\Migration, Illuminate\Database\Schema\Blueprint, Illuminate\Support\Facades\Schema
 
-### Community 4 - "WebhookTransport"
-Cohesion: 0.20
-Nodes (4): WebhookBackoffPolicy, WebhookTransport, WebhookTransportResult, ConcurrentWebhookTransport
+### Community 4 - "AppServiceProvider.php"
+Cohesion: 0.05
+Nodes (18): AppServiceProvider, SoapStatusConsultant, SunatSoapStatusConsultant, DnsResolver, HttpWebhookTransport, NativeDnsResolver, WebhookBackoffPolicy, WebhookDestinationPolicy (+10 more)
 
 ### Community 5 - "DocumentState"
-Cohesion: 0.08
-Nodes (19): self, DocumentState, self, FailureCategory, ProcessingCheckpoint, RecoveryAction, ClassifiedSubmissionException, self (+11 more)
+Cohesion: 0.10
+Nodes (17): DocumentState, self, FailureCategory, ProcessingCheckpoint, RecoveryAction, ClassifiedSubmissionException, self, self (+9 more)
 
 ### Community 6 - "DecimalAmount"
 Cohesion: 0.07
-Nodes (12): CreditNoteReason, DebitNoteReason, DocumentType, StoreFacturaRequest, NoteReferenceResolver, SalesPayloadNormalizer, DecimalAmount, Carbon\CarbonImmutable (+4 more)
+Nodes (11): CreditNoteReason, DebitNoteReason, StoreFacturaRequest, NoteReferenceResolver, SalesPayloadNormalizer, DecimalAmount, DecimalMeasure, Illuminate\Foundation\Http\FormRequest (+3 more)
 
 ### Community 7 - "package.json"
 Cohesion: 0.08
 Nodes (25): dependencies, alpinejs, @fontsource/outfit, devDependencies, axios, concurrently, laravel-vite-plugin, tailwindcss (+17 more)
 
 ### Community 8 - "DespatchPayloadNormalizer"
-Cohesion: 0.11
-Nodes (13): DespatchReason, DespatchTransportMode, DespatchPayloadNormalizer, BoletaSummaryService, VoidedDocumentService, DecimalMeasure, Company, Greenter\Model\Company\Address (+5 more)
-
-### Community 9 - "Fase 6.6A — Auditoría multisucursal / multiestablecimiento"
 Cohesion: 0.12
-Nodes (16): Auditoría de Nova Restaurante, Auditoría de SunFacturation, Company actual, Conclusión de la auditoría, Dictamen ejecutivo, Documentos y snapshots, Fase 6.6A — Auditoría multisucursal / multiestablecimiento, FASE 6.6B — plan propuesto (no ejecutado) (+8 more)
+Nodes (12): DespatchReason, DespatchTransportMode, DespatchPayloadNormalizer, BoletaSummaryService, Note, VoidedDocumentService, Company, Greenter\Model\Company\Address (+4 more)
 
-### Community 10 - "GreenterService"
-Cohesion: 0.07
-Nodes (25): FacturaData, self, ArtifactRecoveryService, ElectronicDocumentProcessor, AbstractDespatchProcessor, CarrierDespatchProcessor, CreditNoteProcessor, DebitNoteProcessor (+17 more)
+### Community 9 - "GreenterService"
+Cohesion: 0.19
+Nodes (11): ArtifactRecoveryService, AbstractDespatchProcessor, DespatchPdfService, DespatchService, ManagedFileService, CertificateService, GreenterService, GreTransport (+3 more)
+
+### Community 10 - "NoteService"
+Cohesion: 0.11
+Nodes (7): ElectronicDocumentProcessor, CarrierDespatchProcessor, CreditNoteProcessor, DebitNoteProcessor, ReceiptProcessor, SenderDespatchProcessor, NoteService
 
 ### Community 11 - "Illuminate\Database\Eloquent\Model"
-Cohesion: 0.07
-Nodes (14): McrApiClient, McrEstablishment, McrOutboxEvent, McrSunatSubmission, McrWebhookDelivery, Serie, TipoComprobante, SerieRepository (+6 more)
+Cohesion: 0.14
+Nodes (8): McrOutboxEvent, McrSunatSubmission, McrWebhookDelivery, Serie, TipoComprobante, SerieRepository, Illuminate\Database\Eloquent\Model, Illuminate\Database\Eloquent\Relations\BelongsTo
 
 ### Community 12 - "DespatchData"
-Cohesion: 0.09
-Nodes (13): DespatchData, self, Client, Despatch, Direction, Greenter\Model\Despatch\AdditionalDoc, Greenter\Model\Despatch\Despatch, Greenter\Model\Despatch\DespatchDetail (+5 more)
+Cohesion: 0.12
+Nodes (6): DespatchData, self, Client, Despatch, Direction, Greenter\Model\Despatch\Direction
 
 ### Community 14 - "RuntimeException"
-Cohesion: 0.29
-Nodes (4): Client, SunatGreTransport, CpeApi, RuntimeException
+Cohesion: 0.16
+Nodes (11): Client, SunatGreTransport, CpeApi, Greenter\Sunat\GRE\Api\AuthApi, Greenter\Sunat\GRE\Api\CpeApi, Greenter\Sunat\GRE\Configuration, Greenter\Sunat\GRE\Model\CpeDocument, Greenter\Sunat\GRE\Model\CpeDocumentArchivo (+3 more)
 
 ### Community 15 - "Fase 2 — identidad, idempotencia y numeración"
 Cohesion: 0.11
-Nodes (17): Archivos, Contexto HTTP transitorio, Fase 2 — identidad, idempotencia y numeración, Garantía arquitectónica y límites, Hashes canónicos, Idempotency-Key y external_reference, Migración y datos históricos, Problema y decisión (+9 more)
+Nodes (16): Archivos, Contexto HTTP transitorio, Fase 2 — identidad, idempotencia y numeración, Garantía arquitectónica y límites, Hashes canónicos, Idempotency-Key y external_reference, Migración y datos históricos, Problema y decisión (+8 more)
 
 ### Community 16 - "Fase 5 — Resiliencia fiscal"
 Cohesion: 0.12
 Nodes (16): Alcance, Artefactos, Auditoría del comportamiento anterior, Checkpoints, Estados y evidencia, Fase 5 — Resiliencia fiscal, GRE 09/31, Limitaciones pendientes (+8 more)
 
-### Community 17 - ".handle"
-Cohesion: 0.26
-Nodes (5): ValidateBillingToken, ValidateSessionToken, SessionTokenService, Closure, Symfony\Component\HttpFoundation\Response
+### Community 17 - "FacturaData"
+Cohesion: 0.21
+Nodes (6): FacturaData, self, InvoiceProcessor, FacturaService, Invoice, Greenter\Xml\Builder\InvoiceBuilder
 
-### Community 18 - "AppServiceProvider.php"
+### Community 18 - "SubmissionCheckpoint"
 Cohesion: 0.20
-Nodes (4): AppServiceProvider, DnsResolver, NativeDnsResolver, Illuminate\Support\ServiceProvider
+Nodes (4): SubmissionCheckpoint, InvoicePdfService, Greenter\Model\Sale\Invoice, Greenter\Model\Sale\Note
 
 ### Community 19 - "Fase 6 — Transactional Outbox y Webhooks"
 Cohesion: 0.14
 Nodes (13): Administración y secrets, Alcance y auditoría previa, Atomicidad, versión y deduplicación, Catálogo, Dispatcher y operación, Entidades, Envelope versión 1, Fase 6 — Transactional Outbox y Webhooks (+5 more)
 
-### Community 20 - "SoapStatusConsultant"
-Cohesion: 0.27
-Nodes (6): SoapStatusConsultant, SunatSoapStatusConsultant, Greenter\Model\Response\StatusCdrResult, Greenter\Ws\Services\ConsultCdrService, Greenter\Ws\Services\SoapClient, Greenter\Ws\Services\SunatEndpoints
+### Community 20 - "NoteService.php"
+Cohesion: 0.21
+Nodes (10): Greenter\Model\Client\Client, Greenter\Model\Company\Company, Greenter\Model\Despatch\AdditionalDoc, Greenter\Model\Despatch\DespatchDetail, Greenter\Model\Despatch\Driver, Greenter\Model\Despatch\Shipment, Greenter\Model\Despatch\Transportist, Greenter\Model\Despatch\Vehicle (+2 more)
 
 ### Community 21 - "Auditoría previa y plan de evolución — 2026-09-13"
 Cohesion: 0.15
@@ -190,8 +187,8 @@ Cohesion: 0.29
 Nodes (7): User, DatabaseSeeder, Illuminate\Database\Console\Seeds\WithoutModelEvents, Illuminate\Database\Eloquent\Factories\HasFactory, Illuminate\Database\Seeder, Illuminate\Foundation\Auth\User, Illuminate\Notifications\Notifiable
 
 ### Community 23 - "InvoicePdfService.php"
-Cohesion: 0.16
-Nodes (10): Note, BaconQrCode\Renderer\Image\SvgImageBackEnd, BaconQrCode\Renderer\ImageRenderer, BaconQrCode\Renderer\RendererStyle\RendererStyle, BaconQrCode\Writer, Dompdf\Dompdf, Dompdf\Options, Greenter\Model\Sale\Invoice (+2 more)
+Cohesion: 0.24
+Nodes (8): BaconQrCode\Renderer\Image\SvgImageBackEnd, BaconQrCode\Renderer\ImageRenderer, BaconQrCode\Renderer\RendererStyle\RendererStyle, BaconQrCode\Writer, Dompdf\Dompdf, Dompdf\Options, Greenter\Model\Despatch\Despatch, Greenter\Report\HtmlReport
 
 ### Community 24 - "Fase 3 — notas de crédito 07 y notas de débito 08"
 Cohesion: 0.18
@@ -217,9 +214,9 @@ Nodes (9): scripts, dev, post-autoload-dump, post-create-project-cmd, post-root-
 Cohesion: 0.22
 Nodes (8): Alcance implementado, Archivos, Cierre del flujo legacy de factura/boleta, Decisiones, Fase 1 — pipeline de ventas existente, Migración, Operación y deuda pendiente, Pruebas y resultados
 
-### Community 31 - "SunFacturation"
+### Community 31 - "README.md"
 Cohesion: 0.22
-Nodes (8): Arquitectura operativa, Documentación adicional, Flujo de emisión, PostgreSQL, Pruebas, Servicios locales, SunFacturation, Verificación rápida
+Nodes (8): About Laravel, Code of Conduct, Contributing, Laravel Sponsors, Learning Laravel, License, Premium Partners, Security Vulnerabilities
 
 ### Community 32 - "UserFactory.php"
 Cohesion: 0.32
@@ -228,10 +225,6 @@ Nodes (4): UserFactory, Illuminate\Database\Eloquent\Factories\Factory, Illumina
 ### Community 33 - "require-dev"
 Cohesion: 0.25
 Nodes (8): require-dev, fakerphp/faker, laravel/pail, laravel/pint, mockery/mockery, nunomaduro/collision, pestphp/pest, pestphp/pest-plugin-laravel
-
-### Community 35 - "GrePollResult"
-Cohesion: 0.17
-Nodes (3): GrePollResult, GreSendResult, RecoveryCountingTransport
 
 ### Community 36 - "config"
 Cohesion: 0.29
@@ -281,37 +274,25 @@ Nodes (3): autoload-dev, psr-4, Tests\\
 Cohesion: 0.67
 Nodes (3): extra, laravel, dont-discover
 
-### Community 76 - "SunatGreTransport.php"
-Cohesion: 0.25
-Nodes (7): Greenter\Sunat\GRE\Api\AuthApi, Greenter\Sunat\GRE\Api\CpeApi, Greenter\Sunat\GRE\Configuration, Greenter\Sunat\GRE\Model\CpeDocument, Greenter\Sunat\GRE\Model\CpeDocumentArchivo, GuzzleHttp\Client, Illuminate\Support\Facades\Cache
-
-### Community 77 - "WebhookOutboxTest.php"
-Cohesion: 0.33
-Nodes (4): Illuminate\Http\Client\ConnectionException, Illuminate\Support\Facades\Http, completedWebhookDocument(), fanoutWebhookEvent()
-
-### Community 80 - "Fase 6.6B — Multisucursal fiscal"
-Cohesion: 0.33
-Nodes (5): Documento y snapshot, Eventos, administración y compatibilidad, Fase 6.6B — Multisucursal fiscal, Modelo y propiedad, Series, numeración y admisión
-
 ## Knowledge Gaps
-- **187 isolated node(s):** `$schema`, `name`, `type`, `description`, `keywords` (+182 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 427 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **12 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **168 isolated node(s):** `$schema`, `name`, `type`, `description`, `keywords` (+163 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 401 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Empresa` connect `Empresa` to `Illuminate\Http\Request`, `McrDocument`, `EmpresaRepository`, `GrePollResult`, `DocumentState`, `DecimalAmount`, `DespatchPayloadNormalizer`, `GreenterService`, `Illuminate\Database\Eloquent\Model`, `DespatchData`, `SunatGreTransport.php`, `RuntimeException`, `SoapStatusConsultant`, `InvoicePdfService.php`, `.configure`?**
+- **Why does `Empresa` connect `Empresa` to `McrDocument`, `Illuminate\Http\Request`, `PollSunatSubmissionJob.php`, `AppServiceProvider.php`, `DocumentState`, `DecimalAmount`, `DespatchPayloadNormalizer`, `GreenterService`, `NoteService`, `Illuminate\Database\Eloquent\Model`, `DespatchData`, `RuntimeException`, `FacturaData`, `SubmissionCheckpoint`, `NoteService.php`, `InvoicePdfService.php`, `.configure`, `EmpresaRepository`, `GreSendResult`, `GrePollResult`?**
   _High betweenness centrality (0.153) - this node is a cross-community bridge._
-- **Why does `McrDocument` connect `McrDocument` to `PipelineDatabase.php`, `DocumentState`, `DecimalAmount`, `DespatchPayloadNormalizer`, `GreenterService`, `Illuminate\Database\Eloquent\Model`, `WebhookOutboxTest.php`?**
-  _High betweenness centrality (0.072) - this node is a cross-community bridge._
-- **Why does `DocumentState` connect `DocumentState` to `McrDocument`, `GreenterService`, `WebhookOutboxTest.php`?**
-  _High betweenness centrality (0.018) - this node is a cross-community bridge._
+- **Why does `McrDocument` connect `McrDocument` to `PollSunatSubmissionJob.php`, `DocumentState`, `DecimalAmount`, `DespatchPayloadNormalizer`, `GreenterService`, `NoteService`, `Illuminate\Database\Eloquent\Model`, `FacturaData`, `NoteService.php`?**
+  _High betweenness centrality (0.073) - this node is a cross-community bridge._
+- **Why does `DocumentState` connect `DocumentState` to `McrDocument`, `Illuminate\Http\Request`, `PollSunatSubmissionJob.php`, `GreenterService`?**
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
 - **What connects `$schema`, `name`, `type` to the rest of the system?**
-  _187 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Illuminate\Http\Request` be split into smaller, more focused modules?**
-  _Cohesion score 0.0818452380952381 - nodes in this community are weakly interconnected._
+  _168 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `McrDocument` be split into smaller, more focused modules?**
-  _Cohesion score 0.05123428039124359 - nodes in this community are weakly interconnected._
-- **Should `DocumentState` be split into smaller, more focused modules?**
-  _Cohesion score 0.07547169811320754 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.056150600454397924 - nodes in this community are weakly interconnected._
+- **Should `Illuminate\Http\Request` be split into smaller, more focused modules?**
+  _Cohesion score 0.06559356136820925 - nodes in this community are weakly interconnected._
+- **Should `PollSunatSubmissionJob.php` be split into smaller, more focused modules?**
+  _Cohesion score 0.0742447516641065 - nodes in this community are weakly interconnected._

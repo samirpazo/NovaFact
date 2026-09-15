@@ -138,3 +138,40 @@ it('administers establishments without destructive deletion or cross-company acc
     $this->withToken('test-token')->withHeaders(['X-Company-Id' => '999999'])
         ->getJson('/api/facturacion/configuracion/establecimientos')->assertNotFound();
 });
+
+it('returns a scoped read-only fiscal view without company secrets', function () {
+    $companyId = (int) DB::table('McrCompanyConfig')->value('McrCompanyConfigID');
+    DB::table('McrCompanyConfig')->where('McrCompanyConfigID', $companyId)->update([
+        'McrSolPassword' => 'never-return-sol',
+        'McrCertificatePassword' => 'never-return-certificate',
+    ]);
+    secondEstablishment();
+
+    $response = $this->withToken('test-token')->withHeaders(['X-Company-Id' => (string) $companyId])
+        ->getJson('/api/facturacion/configuracion/establecimientos?external_code=RST-BRANCH-1')
+        ->assertOk()->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.external_code', 'RST-BRANCH-1')
+        ->assertJsonPath('data.0.sunat_code', '0000')
+        ->assertJsonPath('data.0.series.0.document_type', '01')
+        ->assertJsonPath('data.0.series.0.series_code', 'F001')
+        ->assertJsonPath('data.0.series.0.next_correlative', 1);
+
+    $body = $response->getContent();
+    expect($body)->not->toContain('never-return-sol')
+        ->not->toContain('never-return-certificate')
+        ->not->toContain('McrSolPassword')
+        ->not->toContain('McrCertificatePassword');
+
+    $this->withToken('test-token')->withHeaders(['X-Company-Id' => (string) $companyId])
+        ->getJson('/api/facturacion/configuracion/establecimientos?external_code=UNKNOWN')
+        ->assertOk()->assertJsonCount(0, 'data');
+    $this->withToken('test-token')->withHeaders(['X-Company-Id' => (string) $companyId])
+        ->getJson('/api/facturacion/configuracion/establecimientos?default=1')
+        ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.is_default', true);
+
+    $this->withToken('test-token')->getJson('/api/facturacion/configuracion/empresa')
+        ->assertOk()->assertJsonMissingPath('company.series');
+    $this->withToken('test-token')->putJson('/api/facturacion/configuracion/empresa/series', [
+        'series' => [],
+    ])->assertNotFound();
+});
