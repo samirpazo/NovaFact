@@ -23,7 +23,7 @@ class InvoicePdfService
         $count = 0;
         foreach ($lines as $line) {
             $count++;
-            $rows .= '<tr><td class="qty">'.number_format((float) $line->McrQuantity, 2).'</td><td class="desc">'.$e($line->McrDescription).'<br><small>'.$e($line->McrProductCode).'</small></td><td class="num">'.number_format((float) $line->McrUnitPrice, 2).'</td><td class="num">'.number_format((float) $line->McrLineTotal, 2).'</td></tr>';
+            $rows .= '<tr><td class="qty">'.number_format((float) $line->McrQuantity, 2).'</td><td class="desc">'.$e($line->McrDescription).'</td><td class="num">'.number_format((float) $line->McrUnitPrice, 2).'</td><td class="num">'.number_format((float) $line->McrLineTotal, 2).'</td></tr>';
         }
         $total = number_format((float) $document->McrTotalAmount, 2);
         $qr = $this->ticketQr(implode('|', [$document->McrDocumentType, $document->McrSeriesCode, $document->McrCorrelative, $document->McrTaxAmount, $document->McrTotalAmount, $document->McrIssueDate, $document->McrCustomerDocumentType, $document->McrCustomerDocumentNumber]));
