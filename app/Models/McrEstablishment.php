@@ -41,4 +41,9 @@ class McrEstablishment extends Model
     {
         return $this->hasMany(McrDocument::class, 'McrEstablishmentID', 'McrEstablishmentID');
     }
+
+    public function series(): HasMany
+    {
+        return $this->hasMany(McrSeries::class, 'McrEstablishmentID', 'McrEstablishmentID');
+    }
 }

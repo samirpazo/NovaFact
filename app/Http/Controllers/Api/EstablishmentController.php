@@ -100,10 +100,16 @@ final class EstablishmentController extends Controller
 
     private function view(McrEstablishment $item): array
     {
+        $series = $item->series()->whereIn('McrDocumentType', ['01', '03'])
+            ->orderBy('McrDocumentType')->get(['McrDocumentType', 'McrSeriesCode', 'McrNextCorrelative', 'McrIsActive'])
+            ->map(fn ($row) => ['document_type' => $row->McrDocumentType, 'series_code' => $row->McrSeriesCode,
+                'next_correlative' => (int) $row->McrNextCorrelative, 'is_active' => (bool) $row->McrIsActive])->values()->all();
+
         return ['id' => $item->getKey(), 'company_id' => (int) $item->McrCompanyConfigID, 'external_code' => $item->McrExternalCode,
             'sunat_code' => $item->McrSunatCode, 'name' => $item->McrName, 'trade_name' => $item->McrTradeName,
             'address' => $item->McrAddress, 'address_reference' => $item->McrAddressReference, 'ubigeo' => $item->McrUbigeo,
             'department' => $item->McrDepartment, 'province' => $item->McrProvince, 'district' => $item->McrDistrict,
-            'country_code' => $item->McrCountryCode, 'is_default' => (bool) $item->McrIsDefault, 'is_active' => (bool) $item->McrIsActive];
+            'country_code' => $item->McrCountryCode, 'is_default' => (bool) $item->McrIsDefault, 'is_active' => (bool) $item->McrIsActive,
+            'series' => $series];
     }
 }
