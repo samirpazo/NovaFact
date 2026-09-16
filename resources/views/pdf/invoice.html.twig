@@ -280,7 +280,7 @@
             <div class="ruc-box">
                 <div class="ruc-title">R.U.C. N° {{ cp.ruc }}</div>
                 <div class="doc-name">{{ name }}</div>
-                <div class="doc-number">{{ doc.serie }}-{{ doc.correlativo }}</div>
+                <div class="doc-number">{{ doc.serie }}-{{ "%08d"|format(doc.correlativo) }}</div>
             </div>
         </td>
     </tr>

@@ -19,6 +19,8 @@ final class FiscalCompanyFactory
 
         return (new Company)->setRuc($company->McrRuc)->setRazonSocial($company->McrBusinessName)
             ->setNombreComercial(($snapshot['trade_name'] ?? null) ?: (($snapshot['name'] ?? null) ?: $company->McrTradeName))
+            ->setTelephone($company->McrPhone)
+            ->setEmail($company->McrEmail)
             ->setAddress((new Address)->setUbigueo($snapshot['ubigeo'])->setDepartamento($snapshot['department'] ?? null)
                 ->setProvincia($snapshot['province'] ?? null)->setDistrito($snapshot['district'] ?? null)
                 ->setDireccion($snapshot['address'])->setCodLocal($snapshot['sunat_code']));
