@@ -34,6 +34,8 @@ class McrEstablishment extends Model
             'province' => $this->McrProvince,
             'district' => $this->McrDistrict,
             'country_code' => $this->McrCountryCode,
+            'phone' => $this->McrPhone,
+            'email' => $this->McrEmail,
         ];
     }
 

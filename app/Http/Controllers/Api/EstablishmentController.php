@@ -88,6 +88,7 @@ final class EstablishmentController extends Controller
             'address_reference' => ['nullable', 'string', 'max:500'], 'ubigeo' => [$sometimes, 'regex:/^\d{6}$/D'],
             'department' => ['nullable', 'string', 'max:100'], 'province' => ['nullable', 'string', 'max:100'],
             'district' => ['nullable', 'string', 'max:100'], 'country_code' => ['sometimes', 'string', 'size:2'],
+            'phone' => ['nullable', 'string', 'max:50'], 'email' => ['nullable', 'string', 'max:250'],
             'is_default' => ['sometimes', 'boolean'], 'is_active' => ['sometimes', 'boolean'],
         ]);
     }
@@ -96,7 +97,8 @@ final class EstablishmentController extends Controller
     {
         $map = ['external_code' => 'McrExternalCode', 'sunat_code' => 'McrSunatCode', 'name' => 'McrName', 'trade_name' => 'McrTradeName',
             'address' => 'McrAddress', 'address_reference' => 'McrAddressReference', 'ubigeo' => 'McrUbigeo', 'department' => 'McrDepartment',
-            'province' => 'McrProvince', 'district' => 'McrDistrict', 'country_code' => 'McrCountryCode', 'is_default' => 'McrIsDefault', 'is_active' => 'McrIsActive'];
+            'province' => 'McrProvince', 'district' => 'McrDistrict', 'country_code' => 'McrCountryCode', 'phone' => 'McrPhone', 'email' => 'McrEmail',
+            'is_default' => 'McrIsDefault', 'is_active' => 'McrIsActive'];
         $result = [];
         foreach ($map as $source => $target) {
             if (array_key_exists($source, $data)) {
@@ -118,7 +120,8 @@ final class EstablishmentController extends Controller
             'sunat_code' => $item->McrSunatCode, 'name' => $item->McrName, 'trade_name' => $item->McrTradeName,
             'address' => $item->McrAddress, 'address_reference' => $item->McrAddressReference, 'ubigeo' => $item->McrUbigeo,
             'department' => $item->McrDepartment, 'province' => $item->McrProvince, 'district' => $item->McrDistrict,
-            'country_code' => $item->McrCountryCode, 'is_default' => (bool) $item->McrIsDefault, 'is_active' => (bool) $item->McrIsActive,
+            'country_code' => $item->McrCountryCode, 'phone' => $item->McrPhone, 'email' => $item->McrEmail,
+            'is_default' => (bool) $item->McrIsDefault, 'is_active' => (bool) $item->McrIsActive,
             'series' => $series];
     }
 }
