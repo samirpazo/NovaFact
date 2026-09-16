@@ -369,7 +369,8 @@
     <tr>
         <td class="footer-left">
             <div class="box-rounded">
-                <div class="words-text">SON: {% if doc.legends %}{{ legend(doc.legends, '1000') }}{% endif %}</div>
+                {% set totalWords = doc.legends ? legend(doc.legends, '1000') : '' %}
+                <div class="words-text">{% if totalWords starts with 'SON ' or totalWords starts with 'SON:' %}{{ totalWords }}{% elseif totalWords %}SON: {{ totalWords }}{% endif %}</div>
                 {% if doc.formaPago %}
                     <div class="payment-text">FORMA DE PAGO: {{ doc.formaPago.tipo }}</div>
                 {% else %}
