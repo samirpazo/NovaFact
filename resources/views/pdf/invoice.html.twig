@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <style type="text/css">
+        @page {
+            margin: 8mm 10mm 8mm 12mm;
+        }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 8.5pt;
+            color: #111;
+            line-height: 1.2;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .header-table {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        .logo-cell {
+            width: 60%;
+            vertical-align: middle;
+        }
+        .ruc-cell {
+            width: 40%;
+            vertical-align: top;
+        }
+        .ruc-box {
+            border: 2px solid #222;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .ruc-title {
+            font-size: 13pt;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .doc-name {
+            font-size: 11pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 6px 0;
+            letter-spacing: 0.5px;
+        }
+        .doc-number {
+            font-size: 13pt;
+            font-weight: bold;
+        }
+        .company-name {
+            font-size: 11pt;
+            font-weight: bold;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+        .company-info {
+            font-size: 7.5pt;
+            color: #333;
+            margin-bottom: 2px;
+        }
+        
+        /* Client & Doc Info Box */
+        .info-box {
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 6px 8px;
+            margin-bottom: 8px;
+        }
+        .info-table td {
+            padding: 2px 0;
+            vertical-align: top;
+        }
+        
+        /* Detail Items Table Box - Full Height Fill */
+        .items-box {
+            border: 1px solid #333;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            height: 560px;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            height: 100%;
+        }
+        .items-table th {
+            background-color: #e0e0e0;
+            border-bottom: 1px solid #333;
+            border-right: 1px solid #333;
+            padding: 6px 4px;
+            font-size: 8pt;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+            height: 20px;
+        }
+        .items-table th:last-child {
+            border-right: none;
+        }
+        .items-table td {
+            border-right: 1px solid #333;
+            padding: 4px 5px;
+            font-size: 8pt;
+            vertical-align: top;
+        }
+        .items-table td:last-child {
+            border-right: none;
+        }
+        .items-table tr.item-row td {
+            border-bottom: 1px solid #eee;
+        }
+        .items-table tr.filler-row td {
+            border-right: 1px solid #333;
+            border-bottom: none;
+            height: 100%;
+        }
+        .items-table tr.filler-row td:last-child {
+            border-right: none;
+        }
+        
+        /* Footer / Totals Section */
+        .footer-table {
+            width: 100%;
+            margin-top: 4px;
+        }
+        .footer-left {
+            width: 65%;
+            vertical-align: top;
+            padding-right: 10px;
+        }
+        .footer-right {
+            width: 35%;
+            vertical-align: top;
+        }
+        
+        .box-rounded {
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 5px 8px;
+            margin-bottom: 6px;
+        }
+        .words-text {
+            font-size: 8pt;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .payment-text {
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .obs-title {
+            font-size: 8pt;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        .obs-content {
+            font-size: 7.5pt;
+            min-height: 24px;
+        }
+        
+        /* Totals Table */
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8.5pt;
+        }
+        .totals-table td {
+            padding: 4px 4px;
+        }
+        .totals-label {
+            text-align: right;
+            padding-right: 8px;
+        }
+        .totals-value {
+            text-align: right;
+            font-family: 'DejaVu Sans', sans-serif;
+            width: 95px;
+        }
+        .totals-total-row td {
+            font-size: 10pt;
+            font-weight: bold;
+            border-top: 1px solid #333;
+            padding-top: 6px;
+        }
+        
+        /* Payment cuotas table */
+        .cuotas-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7.5pt;
+            margin-top: 4px;
+            border: 1px solid #333;
+        }
+        .cuotas-table th {
+            background-color: #f0f0f0;
+            border: 1px solid #333;
+            padding: 2px;
+            text-align: center;
+        }
+        .cuotas-table td {
+            border: 1px solid #333;
+            padding: 2px;
+            text-align: center;
+        }
+        
+        /* Legal / QR section */
+        .qr-table {
+            width: 100%;
+            margin-top: 6px;
+        }
+        .qr-img-cell {
+            width: 75px;
+            vertical-align: middle;
+        }
+        .qr-text-cell {
+            vertical-align: middle;
+            padding-left: 6px;
+            font-size: 7pt;
+            color: #444;
+            line-height: 1.25;
+        }
+
+        /* Left margin rotated environmental text */
+        .side-warning {
+            position: absolute;
+            left: -22px;
+            bottom: 300px;
+            transform: rotate(-90deg);
+            transform-origin: 0 0;
+            font-size: 7.5pt;
+            color: #444;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+<div class="side-warning">Antes de Imprimir este documento piense bien si es necesario hacerlo</div>
+
+{% set cp = doc.company %}
+{% set cl = doc.client %}
+{% set isInvoice = doc.tipoDoc in ['01', '03'] %}
+{% set isNota = doc.tipoDoc in ['07', '08'] %}
+{% set name = doc.tipoDoc|catalog('01') %}
+{% set monedaSymbol = doc.tipoMoneda == 'USD' ? '$' : 'S/' %}
+{% set monedaIso = doc.tipoMoneda %}
+{% set igvPercentage = params.user.numIGV is defined and params.user.numIGV ? params.user.numIGV : '18' %}
+
+<!-- HEADER SECTION -->
+<table class="header-table">
+    <tr>
+        <td class="logo-cell">
+            <table border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                    {% if params.system.logo %}
+                    <td style="padding-right: 10px; vertical-align: middle; width: 70px; text-align: center;">
+                        <img src="{{ params.system.logo|image_b64 }}" style="max-height: 70px; max-width: 70px;" border="0">
+                    </td>
+                    {% endif %}
+                    <td style="vertical-align: middle;">
+                        <div class="company-name">{{ cp.razonSocial }}</div>
+                        {% if cp.address and cp.address.direccion %}
+                            <div class="company-info"><strong>Dir.:</strong> {{ cp.address.direccion }}{% if cp.address.urbanizacion %}, {{ cp.address.urbanizacion }}{% endif %}{% if cp.address.distrito %}, {{ cp.address.distrito }}{% endif %}{% if cp.address.provincia %}, {{ cp.address.provincia }}{% endif %}{% if cp.address.departamento %}, {{ cp.address.departamento }}{% endif %}</div>
+                        {% endif %}
+                        {% if cp.telephone or cp.email %}
+                            <div class="company-info">
+                                {% if cp.telephone %}<strong>Telf.:</strong> {{ cp.telephone }}{% endif %}
+                                {% if cp.telephone and cp.email %} | {% endif %}
+                                {% if cp.email %}<strong>Email:</strong> {{ cp.email }}{% endif %}
+                            </div>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </td>
+        <td class="ruc-cell">
+            <div class="ruc-box">
+                <div class="ruc-title">R.U.C. N° {{ cp.ruc }}</div>
+                <div class="doc-name">{{ name }}</div>
+                <div class="doc-number">{{ doc.serie }}-{{ doc.correlativo }}</div>
+            </div>
+        </td>
+    </tr>
+</table>
+
+<!-- CLIENT & DOCUMENT INFO BOX -->
+<div class="info-box">
+    <table class="info-table">
+        <tr>
+            <td width="13%"><strong>CLIENTE</strong></td>
+            <td width="2%"><strong>:</strong></td>
+            <td width="50%"><strong>{{ cl.rznSocial }}</strong></td>
+            <td width="18%"><strong>Fecha de emisión</strong></td>
+            <td width="2%"><strong>:</strong></td>
+            <td width="15%">{{ doc.fechaEmision|date('d/m/Y') }}</td>
+        </tr>
+        <tr>
+            <td><strong>DIRECCIÓN</strong></td>
+            <td><strong>:</strong></td>
+            <td>{% if cl.address %}{{ cl.address.direccion }}{% else %}-{% endif %}</td>
+            <td><strong>Moneda</strong></td>
+            <td><strong>:</strong></td>
+            <td>{{ monedaIso }}</td>
+        </tr>
+        <tr>
+            <td><strong>TIPO DOC.</strong></td>
+            <td><strong>:</strong></td>
+            <td>{{ cl.tipoDoc|catalog('06') }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>N°:</strong> {{ cl.numDoc }}</td>
+            <td colspan="3"></td>
+        </tr>
+        {% if isNota %}
+        <tr>
+            <td><strong>DOC. REF.</strong></td>
+            <td><strong>:</strong></td>
+            <td colspan="4">{{ doc.tipDocAfectado|catalog('01') }} &nbsp; {{ doc.numDocfectado }}</td>
+        </tr>
+        {% if doc.desMotivo %}
+        <tr>
+            <td><strong>MOTIVO</strong></td>
+            <td><strong>:</strong></td>
+            <td colspan="4">{{ doc.desMotivo }}</td>
+        </tr>
+        {% endif %}
+        {% endif %}
+    </table>
+</div>
+
+<!-- ITEMS TABLE -->
+<div class="items-box">
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th width="12%">CÓDIGO</th>
+                <th width="48%">DESCRIPCIÓN</th>
+                <th width="8%">U.M.</th>
+                <th width="10%">CANTIDAD</th>
+                <th width="11%">PRECIO UNITARIO</th>
+                <th width="11%">PRECIO TOTAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for det in doc.details %}
+            <tr class="item-row">
+                <td align="center">{{ det.codProducto ? det.codProducto : '-' }}</td>
+                <td align="left">{{ det.descripcion }}</td>
+                <td align="center">{{ det.unidad ? det.unidad : 'NIU' }}</td>
+                <td align="right">{{ det.cantidad|number_format(2, '.', ',') }}</td>
+                <td align="right">{{ det.mtoPrecioUnitario|number_format(2, '.', ',') }}</td>
+                <td align="right">{{ det.mtoValorVenta|number_format(2, '.', ',') }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="filler-row">
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- FOOTER SECTION -->
+<table class="footer-table">
+    <tr>
+        <td class="footer-left">
+            <div class="box-rounded">
+                <div class="words-text">SON: {% if doc.legends %}{{ legend(doc.legends, '1000') }}{% endif %}</div>
+                {% if doc.formaPago %}
+                    <div class="payment-text">FORMA DE PAGO: {{ doc.formaPago.tipo }}</div>
+                {% else %}
+                    <div class="payment-text">FORMA DE PAGO: Contado</div>
+                {% endif %}
+            </div>
+
+            <div class="box-rounded">
+                <div class="words-text">Operación sujeta al Sistema de Pago de Obligaciones Tributarias</div>
+                {% if isInvoice and doc.detraccion %}
+                <div style="font-size: 7.5pt; margin-top: 3px;">
+                    <strong>Bien/Servicio:</strong> {{ doc.detraccion.codBienDetraccion }} - {{ doc.detraccion.codBienDetraccion|catalog('54') }} | 
+                    <strong>Porcentaje:</strong> {{ doc.detraccion.percent }}% | 
+                    <strong>Monto:</strong> {{ monedaSymbol }} {{ doc.detraccion.monto|number_format(2, '.', ',') }}<br>
+                    <strong>Cta. Banco Nación:</strong> {{ doc.detraccion.ctaBanco }}
+                </div>
+                {% endif %}
+            </div>
+
+            {% if doc.formaPago and doc.formaPago.tipo == 'Credito' and doc.formaPago.cuotas %}
+            <div style="margin-bottom: 6px;">
+                <table class="cuotas-table">
+                    <thead>
+                        <tr>
+                            <th>N° Cuota</th>
+                            <th>Monto</th>
+                            <th>Vencimiento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i, cuota in doc.formaPago.cuotas %}
+                        <tr>
+                            <td>Cuota {{ i + 1 }}</td>
+                            <td>{{ monedaSymbol }} {{ cuota.monto|number_format(2, '.', ',') }}</td>
+                            <td>{{ cuota.fecVencimiento|date('d/m/Y') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <div class="box-rounded">
+                <div class="obs-title">OBSERVACIONES SUNAT:</div>
+                <div class="obs-content">
+                    {% if doc.observation %}
+                        {{ doc.observation }}
+                    {% elseif doc.observacion %}
+                        {{ doc.observacion }}
+                    {% endif %}
+                </div>
+            </div>
+
+            <table class="qr-table">
+                <tr>
+                    <td class="qr-img-cell">
+                        <img src="{{ qrCode(doc)|image_b64('svg+xml') }}" width="70" height="70" border="0" />
+                    </td>
+                    <td class="qr-text-cell">
+                        <strong>REPRESENTACIÓN IMPRESA DE FACTURA ELECTRÓNICA</strong><br>
+                        ESTA PUEDE SER CONSULTADA EN HTTPS://SUNAT.GOB.PE<br>
+                        Autorizado mediante RS Nro: 034-005-0006136/SUNAT<br>
+                        CPE puede ser validado en: https://consulta.conose.pe/
+                    </td>
+                </tr>
+            </table>
+        </td>
+
+        <td class="footer-right">
+            <table class="totals-table">
+                <tr>
+                    <td class="totals-label">Op. Gravadas:</td>
+                    <td class="totals-value">{% if doc.mtoOperGravadas is defined and doc.mtoOperGravadas > 0 %}{{ doc.mtoOperGravadas|number_format(2, '.', ',') }}{% else %}0.00{% endif %}</td>
+                </tr>
+                <tr>
+                    <td class="totals-label">I.G.V. ({{ igvPercentage }}%):</td>
+                    <td class="totals-value">{% if doc.mtoIGV is defined and doc.mtoIGV > 0 %}{{ doc.mtoIGV|number_format(2, '.', ',') }}{% else %}0.00{% endif %}</td>
+                </tr>
+                <tr class="totals-total-row">
+                    <td class="totals-label">IMPORTE TOTAL:</td>
+                    <td class="totals-value">{{ monedaSymbol }} {{ doc.mtoImpVenta|number_format(2, '.', ',') }}</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

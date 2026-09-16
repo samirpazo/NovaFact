@@ -14,15 +14,19 @@ class InvoicePdfService
 {
     public function generate(Invoice|Note $invoice, ?string $filename = null): array
     {
-        $htmlReport = new HtmlReport;
+        $htmlReport = new HtmlReport(resource_path('views/pdf'));
         $htmlReport->setTemplate('invoice.html.twig');
 
-        $transparentLogo = base64_decode(
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLzWQAAAABJRU5ErkJggg=='
-        );
+        $logoContent = null;
         $companyConfig = Empresa::where('McrRuc', $invoice->getCompany()?->getRuc())->first();
         if ($companyConfig?->McrLogoPath && Storage::disk('local')->exists($companyConfig->McrLogoPath)) {
-            $transparentLogo = Storage::disk('local')->get($companyConfig->McrLogoPath);
+            $logoContent = Storage::disk('local')->get($companyConfig->McrLogoPath);
+        } elseif (Storage::disk('local')->exists('facturacion/logo/company-logo.jpg')) {
+            $logoContent = Storage::disk('local')->get('facturacion/logo/company-logo.jpg');
+        } else {
+            $logoContent = base64_decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLzWQAAAABJRU5ErkJggg=='
+            );
         }
 
         $firstDetail = ($invoice->getDetails() ?? [])[0] ?? null;
@@ -34,7 +38,7 @@ class InvoicePdfService
         }
         $html = $htmlReport->render($invoice, [
             'system' => [
-                'logo' => $transparentLogo,
+                'logo' => $logoContent,
             ],
             'user' => [
                 'header' => '',
@@ -42,43 +46,6 @@ class InvoicePdfService
                 'numIGV' => (string) $taxRate,
             ],
         ]);
-
-        // La plantilla de Greenter deja demasiado espacio en el encabezado para A4.
-        // Compactamos el layout sin modificar la dependencia externa.
-        $html = str_replace([
-            'padding:30px; !important',
-            'height="200px"',
-            'height="200"',
-            'height="90"',
-            'height="40"',
-            'height="80"',
-            'cellpadding="9"',
-            'cellpadding="6"',
-            'margin: 20px 0',
-            '<br><br><span style="font-family:Tahoma, Geneva, sans-serif; font-size:12px"',
-        ], [
-            'padding:8px !important',
-            'height="108px"',
-            'height="108"',
-            'height="52"',
-            'height="18"',
-            'height="48"',
-            'cellpadding="4"',
-            'cellpadding="3"',
-            'margin: 8px 0',
-            '<span style="font-family:Tahoma, Geneva, sans-serif; font-size:12px"',
-        ], $html);
-
-        // Ajuste final de densidad: la plantilla oficial de Greenter está
-        // pensada para impresión con mucho aire. Estas reglas mantienen la
-        // estructura SUNAT, pero reducen márgenes y espacios improductivos.
-        $html = str_replace('</head>', '<style>
-            @page { margin: 8mm 10mm; }
-            body { font-size: 10px !important; line-height: 1.15 !important; }
-            table { margin-bottom: 4px !important; }
-            td, th { padding-top: 2px !important; padding-bottom: 2px !important; }
-            h1, h2, h3, h4, h5, h6, p { margin-top: 2px !important; margin-bottom: 2px !important; }
-        </style></head>', $html);
 
         $options = new Options;
         $options->set('isRemoteEnabled', false);
