@@ -128,7 +128,8 @@ class AdmitElectronicDocument
                 app(DocumentLifecycle::class)->transition($document->getKey(), $submissionId, DocumentState::Queued);
                 Queue::connection('documents')->push(new ProcessElectronicDocumentJob($document->getKey(), $submissionId));
 
-                return new AdmissionResult($document->getKey(), $submissionId, DocumentState::Queued->value);
+                $docNumber = sprintf('%s-%08d', $series->McrSeriesCode, $number);
+                return new AdmissionResult($document->getKey(), $submissionId, DocumentState::Queued->value, $series->McrSeriesCode, $number, $docNumber);
             }, 5);
         } catch (QueryException $exception) {
             if (! $this->isAdmissionIdentityViolation($exception)) {
@@ -230,7 +231,10 @@ class AdmitElectronicDocument
             ]);
         }
 
-        return new AdmissionResult($document->getKey(), (int) $submissionId, $document->McrStatus);
+        $seriesCode = $document->McrSeriesCode;
+        $correlative = (int) $document->McrCorrelative;
+        $docNumber = sprintf('%s-%08d', $seriesCode, $correlative);
+        return new AdmissionResult($document->getKey(), (int) $submissionId, $document->McrStatus, $seriesCode, $correlative, $docNumber);
     }
 
     private function isAdmissionIdentityViolation(QueryException $exception): bool

@@ -8,6 +8,9 @@ final readonly class AdmissionResult
         public int $documentId,
         public int $submissionId,
         public string $status,
+        public ?string $seriesCode = null,
+        public ?int $correlative = null,
+        public ?string $documentNumber = null,
     ) {}
 
     public function toArray(): array
@@ -16,6 +19,9 @@ final readonly class AdmissionResult
             'document_id' => $this->documentId,
             'submission_id' => $this->submissionId,
             'status' => $this->status,
+            'series_code' => $this->seriesCode,
+            'correlative' => $this->correlative,
+            'document_number' => $this->documentNumber,
         ];
     }
 }
