@@ -42,7 +42,7 @@ cd /Users/edinson/Documents/Desarrollo/Nova/nova-web
 npm run dev
 ```
 
-El scheduler ejecuta `webhooks:dispatch --limit=100` cada minuto y `billing:reconcile --limit=100` cada cinco minutos. El worker procesa `ProcessElectronicDocumentJob` y `DeliverWebhookJob`.
+El scheduler ejecuta `webhooks:dispatch --limit=100` cada minuto y `billing:reconcile --limit=100` cada cinco minutos (encargado de auto-recuperar / *self-heal* trabajos e interrupciones de worker automáticamente). El worker procesa `ProcessElectronicDocumentJob` y `DeliverWebhookJob`.
 
 El destino loopback (`WEBHOOK_ALLOW_UNSAFE_LOCAL=true`) solo debe habilitarse en desarrollo. En entornos compartidos o productivos se debe usar HTTPS y un destino autorizado.
 
