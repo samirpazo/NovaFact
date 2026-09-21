@@ -112,6 +112,22 @@ final class ReconcileSunatSubmissionJob implements ShouldQueue
             }
             $this->rescheduleOrReview($document, $token, $count, $backoff, 'soap_result_not_yet_verifiable');
         } catch (\DomainException) {
+            $company = Empresa::find($document->McrCompanyConfigID);
+            if ($company && $company->McrEnvironment !== 'production') {
+                $count = (int) ($sub->McrRetryCount ?? 0);
+                if ($count < RetryBackoffPolicy::MAX_PROCESSING_RETRIES) {
+                    $due = now()->addSeconds($backoff->processing($count));
+                    DB::transaction(function () use ($document, $sub, $token, $count, $due): void {
+                        DB::table('McrSunatSubmission')->where('McrSunatSubmissionID', $this->submissionId)->where('McrClaimToken', $token)->update([
+                            'McrRetryCount' => $count + 1, 'McrStatus' => DocumentState::RetryPending->value,
+                            'McrNextAttemptAt' => $due, 'McrClaimedAt' => null, 'McrClaimToken' => null, 'McrUpdatedAt' => now(),
+                        ]);
+                        $document->update(['McrStatus' => DocumentState::RetryPending->value, 'UpdateDate' => now()]);
+                    });
+                    ProcessElectronicDocumentJob::dispatch($document->getKey(), $this->submissionId)->onConnection('documents')->delay($due);
+                    return;
+                }
+            }
             $this->manualReview($document, $token, 'soap_consult_unavailable_environment');
         } catch (\Throwable $exception) {
             Log::warning('document.soap_reconciliation.failed', ['document_id'=>$document->getKey(),'submission_id'=>$this->submissionId,
