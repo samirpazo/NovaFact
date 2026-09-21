@@ -186,7 +186,7 @@ return new class extends Migration
             $table->integer('McrCompanyConfigID');
             $table->string('McrUrl', 2048);
             $table->boolean('McrIsEnabled')->default(true);
-            $table->text('McrEncryptedSecret');
+            $table->text('McrEncryptedSecret')->nullable();
             $table->jsonb('McrEventTypes');
             $table->timestampTz('McrCreatedAt')->useCurrent();
             $table->timestampTz('McrUpdatedAt')->useCurrent();
