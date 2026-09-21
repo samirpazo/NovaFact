@@ -18,7 +18,6 @@ class FacturaService
     public function __construct(
         protected GreenterService $greenterService,
         protected InvoicePdfService $invoicePdfService,
-        protected ManagedFileService $managedFileService,
         protected SubmissionCheckpoint $checkpoint,
         protected FiscalCompanyFactory $fiscalCompany,
         protected SignedXmlDigestValue $signedXmlDigestValue,
@@ -64,7 +63,7 @@ class FacturaService
         $document->update(['McrProcessingResult' => json_encode(\App\Services\Documents\ProcessingResult::fromBillResult($result)->toArray(), JSON_THROW_ON_ERROR)]);
         $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::RemoteResultPersisted);
 
-        // A PDF/GenFile failure after SUNAT answered must never trigger a resend.
+        // A PDF generation failure after SUNAT answered must never trigger a resend.
         try {
             if ($result->getCdrZip()) {
                 $cdrPath = 'facturacion/cdr/R-'.$name.'.zip';
@@ -74,14 +73,9 @@ class FacturaService
                 $document->update(['McrCdrPath' => $cdrPath]);
 
             }
-            $document->update(['McrXmlFilID' => $this->managedFileService->register($xmlPath, $name.'.xml', 'application/xml')]);
-            if (isset($cdrPath)) {
-                $document->update(['McrCdrFilID' => $this->managedFileService->register($cdrPath, 'R-'.$name.'.zip', 'application/zip')]);
-            }
             if ($result->isSuccess() && $result->getCdrResponse()?->isAccepted()) {
                 $pdf = $this->invoicePdfService->generate($invoice, $name.'.pdf', $digestValue);
                 $document->update(['McrPdfPath' => $pdf['path']]);
-                $document->update(['McrPdfFilID' => $this->managedFileService->register($pdf['path'], $name.'.pdf', 'application/pdf')]);
             }
             $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::ArtifactsGenerated);
         } catch (\Throwable $e) {
@@ -101,13 +95,9 @@ class FacturaService
         $data->correlativo = (string) $document->McrCorrelative;
         $invoice = $this->mapToInvoice($data, $company, $document->McrEstablishmentSnapshot);
         $name = $document->getKey().'-'.$invoice->getName();
-        $document->update(['McrXmlFilID' => $this->managedFileService->register($document->McrXmlPath, $name.'.xml', 'application/xml')]);
-        if ($document->McrCdrPath && \Illuminate\Support\Facades\Storage::disk('local')->exists($document->McrCdrPath)) {
-            $document->update(['McrCdrFilID' => $this->managedFileService->register($document->McrCdrPath, 'R-'.$name.'.zip', 'application/zip')]);
-        }
         $digestValue = $this->signedXmlDigestValue->extractFromStorage($document->McrXmlPath);
         $pdf = $this->invoicePdfService->generate($invoice, $name.'.pdf', $digestValue);
-        $document->update(['McrPdfPath' => $pdf['path'], 'McrPdfFilID' => $this->managedFileService->register($pdf['path'], $name.'.pdf', 'application/pdf')]);
+        $document->update(['McrPdfPath' => $pdf['path']]);
     }
 
     protected function mapToInvoice(FacturaData $data, \App\Models\Empresa $companyConfig, ?array $establishmentSnapshot = null): Invoice

@@ -18,20 +18,6 @@ function bootPipelineDatabase(): void
         DB::statement('CREATE SCHEMA "'.$schema.'"');
         test()->pipelineSchema = $schema;
     }
-    // Existing application depends on this external table. Minimal fixture only,
-    // not a production migration pretending the service is already independent.
-    Schema::create('GenFile', function (Blueprint $table): void {
-        $table->increments('FilID');
-        foreach (['FilOriginalName', 'FilStoredName', 'FilRouteParameter', 'FilExtension', 'FilMimeType', 'FilSha256', 'SyncId'] as $column) {
-            $table->string($column)->nullable();
-        }
-        $table->binary('SyncVersion')->nullable();
-        foreach (['FilSizeBytes', 'FilUploadStatus', 'FilPreviewStatus', 'CreateUserId'] as $column) {
-            $table->integer($column)->nullable();
-        }
-        $table->boolean('SecStatus')->nullable();
-        $table->timestamp('CreateDate')->nullable();
-    });
     foreach (glob(database_path('migrations/*.php')) as $file) {
         if (DB::getDriverName() === 'sqlite' && str_contains($file, 'change_document_idempotency_to_string')) {
             continue; // PostgreSQL-specific historical migration, tested in the PG run.
@@ -39,6 +25,7 @@ function bootPipelineDatabase(): void
         (require $file)->up();
     }
     config(['sunat.production' => false, 'services.billing.token' => 'test-token']);
+    \App\Models\McrApiClient::firstOrCreate(['McrCode' => 'legacy'], ['McrName' => 'Legacy client', 'McrIsActive' => true, 'SecStatus' => true]);
     \App\Models\Empresa::create([
         'McrRuc' => '20123456789', 'McrBusinessName' => 'Pipeline fixture', 'McrEnvironment' => 'beta',
         'McrAddress' => 'Av. Fixture 123', 'McrUbigeo' => '150101', 'McrDepartment' => 'LIMA',

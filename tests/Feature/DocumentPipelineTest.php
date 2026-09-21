@@ -143,8 +143,8 @@ it('runs the actual resolver processor mapper and persisted signed transport wit
     app()->instance(\App\Services\Facturacion\InvoicePdfService::class, $pdf);
     (new ProcessElectronicDocumentJob($doc->getKey(), $operation['submission_id']))->handle(app(DocumentProcessorResolver::class), app(DocumentLifecycle::class));
     $doc->refresh();
-    expect($doc->McrStatus)->toBe('accepted')->and($doc->McrXmlFilID)->not->toBeNull()
-        ->and($doc->McrCdrFilID)->not->toBeNull()->and($doc->McrPdfFilID)->not->toBeNull();
+    expect($doc->McrStatus)->toBe('accepted')->and($doc->McrXmlPath)->not->toBeNull()
+        ->and($doc->McrCdrPath)->not->toBeNull()->and($doc->McrPdfPath)->not->toBeNull();
     $this->withToken('test-token')->get('/api/facturacion/archivo/xml/'.basename($doc->McrXmlPath))->assertOk();
     $this->withToken('test-token')->getJson('/api/facturacion/submissions/'.$operation['submission_id'])->assertOk()
         ->assertJsonPath('status', 'accepted')->assertJsonPath('state_version', 3);
@@ -192,12 +192,12 @@ it('executes the serialized database job through the queue handler', function ()
 });
 
 it('applies and reverses the pipeline migration on the isolated schema', function () {
-    $migration = require database_path('migrations/2026_09_13_000000_add_document_pipeline.php');
+    $migration = require database_path('migrations/2026_09_12_000100_create_mcr_document_tables.php');
     $migration->down();
     expect(\Illuminate\Support\Facades\Schema::hasTable('McrDocumentPayload'))->toBeFalse()
         ->and(\Illuminate\Support\Facades\Schema::hasColumn('McrDocument', 'McrProcessingResult'))->toBeFalse();
     $migration->up();
-    expect(\Illuminate\Support\Facades\Schema::hasTable('McrSunatAttempt'))->toBeTrue()
+    expect(\Illuminate\Support\Facades\Schema::hasTable('McrDocumentPayload'))->toBeTrue()
         ->and(\App\Models\Empresa::count())->toBe(1);
 });
 

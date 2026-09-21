@@ -6,7 +6,6 @@ use App\Services\Documents\SubmissionCheckpoint;
 use App\Services\Facturacion\FacturaService;
 use App\Services\Facturacion\FiscalCompanyFactory;
 use App\Services\Facturacion\InvoicePdfService;
-use App\Services\Facturacion\ManagedFileService;
 use App\Services\Sunat\GreenterService;
 use Greenter\Xml\Builder\InvoiceBuilder;
 
@@ -26,9 +25,9 @@ test('the XML keeps the requested IGV rate and coherent line amounts', function 
     $service = new FacturaService(
         Mockery::mock(GreenterService::class),
         Mockery::mock(InvoicePdfService::class),
-        Mockery::mock(ManagedFileService::class),
         app(SubmissionCheckpoint::class),
         new FiscalCompanyFactory,
+        app(\App\Services\Facturacion\SignedXmlDigestValue::class),
     );
 
     $data = FacturaData::fromArray([

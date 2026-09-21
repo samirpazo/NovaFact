@@ -186,7 +186,6 @@ final class ReconcileSunatSubmissionJob implements ShouldQueue
         $name='R-'.$company->CpyRuc.'-'.$document->McrDocumentType.'-'.$document->McrSeriesCode.'-'.$document->McrCorrelative.'.zip';
         $path='facturacion/'.$company->getKey().'/'.$document->McrDocumentType.'/'.$document->McrSeriesCode.'/'.$document->McrCorrelative.'/'.$name;
         \Illuminate\Support\Facades\Storage::disk('local')->put($path,$bytes);
-        $id=app(\App\Services\Facturacion\ManagedFileService::class)->register($path,$name,'application/zip');
-        $document->update(['McrCdrPath'=>$path,'McrCdrFilID'=>$id]);
+        $document->update(['McrCdrPath'=>$path]);
     }
 }

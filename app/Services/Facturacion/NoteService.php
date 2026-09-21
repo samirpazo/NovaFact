@@ -24,7 +24,6 @@ class NoteService
     public function __construct(
         private GreenterService $greenter,
         private InvoicePdfService $pdf,
-        private ManagedFileService $files,
         private SubmissionCheckpoint $checkpoint,
         private FiscalCompanyFactory $fiscalCompany,
     ) {}
@@ -68,15 +67,10 @@ class NoteService
                 }
                 $document->update(['McrCdrPath' => $cdrPath]);
             }
-            $document->update(['McrXmlFilID' => $this->files->register($xmlPath, $name.'.xml', 'application/xml')]);
-            if (isset($cdrPath)) {
-                $document->update(['McrCdrFilID' => $this->files->register($cdrPath, 'R-'.$name.'.zip', 'application/zip')]);
-            }
             if ($result->isSuccess() && $result->getCdrResponse()?->isAccepted()) {
                 $pdf = $this->pdf->generate($note, $name.'.pdf');
                 $document->update([
                     'McrPdfPath' => $pdf['path'],
-                    'McrPdfFilID' => $this->files->register($pdf['path'], $name.'.pdf', 'application/pdf'),
                 ]);
             }
             $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::ArtifactsGenerated);
@@ -96,12 +90,8 @@ class NoteService
         $data->correlativo = (string) $document->McrCorrelative;
         $note = $this->map($data, $payload['reference'], $company, DecimalAmount::add($payload['mtoOperGravada'], $payload['mtoIGV']), $payload['mtoTotal'], $document->McrEstablishmentSnapshot);
         $name = $document->getKey().'-'.$note->getName();
-        $document->update(['McrXmlFilID' => $this->files->register($document->McrXmlPath, $name.'.xml', 'application/xml')]);
-        if ($document->McrCdrPath && Storage::disk('local')->exists($document->McrCdrPath)) {
-            $document->update(['McrCdrFilID' => $this->files->register($document->McrCdrPath, 'R-'.$name.'.zip', 'application/zip')]);
-        }
         $pdf = $this->pdf->generate($note, $name.'.pdf');
-        $document->update(['McrPdfPath' => $pdf['path'], 'McrPdfFilID' => $this->files->register($pdf['path'], $name.'.pdf', 'application/pdf')]);
+        $document->update(['McrPdfPath' => $pdf['path']]);
     }
 
     public function map(FacturaData $data, array $reference, Empresa $companyConfig, string $subTotal, string|int $totalText, ?array $establishmentSnapshot = null): Note

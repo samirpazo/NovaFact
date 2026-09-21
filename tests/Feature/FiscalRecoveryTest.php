@@ -64,7 +64,7 @@ it('keeps attempts historical and blocks a duplicate active GRE poll claim', fun
         'McrStatus' => 'awaiting_sunat', 'McrTicket' => 'ticket-one', 'McrClaimedAt' => now(), 'McrClaimToken' => (string) Str::uuid(),
     ]);
     $transport = Mockery::mock(\App\Services\Sunat\GreTransport::class); $transport->shouldNotReceive('poll');
-    (new PollSunatSubmissionJob($op['submission_id']))->handle($transport, app(\App\Services\Sunat\GreCdrParser::class), app(DocumentLifecycle::class), app(\App\Services\Facturacion\ManagedFileService::class));
+    (new PollSunatSubmissionJob($op['submission_id']))->handle($transport, app(\App\Services\Sunat\GreCdrParser::class), app(DocumentLifecycle::class));
     expect(DB::table('McrSunatAttempt')->count())->toBe(0);
 });
 

@@ -196,7 +196,7 @@ it('migrates legacy establishments without changing fiscal identity and survives
     $document = persistedOriginal();
     $before = McrDocument::whereKey($document->getKey())
         ->first(['McrCompanyConfigID', 'McrSeriesCode', 'McrCorrelative'])->toArray();
-    $migration = require database_path('migrations/2026_09_14_000000_add_fiscal_establishments.php');
+    $migration = require database_path('migrations/2026_09_12_000000_create_mcr_configuration_tables.php');
     $migration->down();
     foreach ([1, 2] as $run) {
         $migration->up();
@@ -348,9 +348,9 @@ it('serializes concurrent credits on one origin and prevents accumulated over-cr
 });
 
 it('migrates legacy data without changing documents and survives down then up', function () {
-    $outboxMigration = require database_path('migrations/2026_09_13_000500_add_transactional_outbox_webhooks.php');
+    $outboxMigration = require database_path('migrations/2026_09_12_000200_create_mcr_submission_and_outbox_tables.php');
     $outboxMigration->down();
-    $migration = require database_path('migrations/2026_09_13_000100_add_admission_identity.php');
+    $migration = require database_path('migrations/2026_09_12_000100_create_mcr_document_tables.php');
     $migration->down();
     $companyAId = (int) DB::table('McrCompanyConfig')->value('McrCompanyConfigID');
     $companyBId = (int) DB::table('McrCompanyConfig')->insertGetId([
@@ -459,7 +459,7 @@ it('allows only one of two concurrent pollers to perform the remote action', fun
     RecoveryCountingTransport::$path=sys_get_temp_dir().'/recovery-count-'.bin2hex(random_bytes(5)); file_put_contents(RecoveryCountingTransport::$path,'0');
     $children=[];
     foreach(range(1,2) as $_){ $pid=pcntl_fork(); if($pid===0){ DB::disconnect(config('database.default'));
-        (new PollSunatSubmissionJob($op['submission_id']))->handle(new RecoveryCountingTransport,app(\App\Services\Sunat\GreCdrParser::class),app(\App\Services\Documents\DocumentLifecycle::class),app(\App\Services\Facturacion\ManagedFileService::class)); exit(0); } $children[]=$pid; }
+        (new PollSunatSubmissionJob($op['submission_id']))->handle(new RecoveryCountingTransport,app(\App\Services\Sunat\GreCdrParser::class),app(\App\Services\Documents\DocumentLifecycle::class)); exit(0); } $children[]=$pid; }
     foreach($children as $pid) pcntl_waitpid($pid,$status); DB::disconnect(config('database.default'));
     expect((int)file_get_contents(RecoveryCountingTransport::$path))->toBe(1)
         ->and(DB::table('McrSunatAttempt')->where('McrTransport','gre_poll')->count())->toBe(1);
@@ -476,7 +476,7 @@ it('uses the recovery due index and preserves all six document types through rec
         ]);
     }
     $before=DB::table('McrDocument')->where('McrCorrelative','>=',900)->orderBy('McrDocumentType')->get(['McrDocumentType','McrSeriesCode','McrCorrelative'])->toJson();
-    $migration=require database_path('migrations/2026_09_13_000400_add_fiscal_recovery.php'); $migration->down(); $migration->up();
+    $migration=require database_path('migrations/2026_09_12_000200_create_mcr_submission_and_outbox_tables.php'); $migration->down(); $migration->up();
     $after=DB::table('McrDocument')->where('McrCorrelative','>=',900)->orderBy('McrDocumentType')->get(['McrDocumentType','McrSeriesCode','McrCorrelative'])->toJson();
     DB::statement('SET enable_seqscan = off');
     $plan=collect(DB::select('EXPLAIN SELECT * FROM "McrSunatSubmission" WHERE "McrStatus" = ? AND "McrNextAttemptAt" <= now()',['retry_pending']))
@@ -518,7 +518,7 @@ it('keeps historical documents event-free and uses PostgreSQL outbox indexes aft
         'McrDocumentType'=>$type,'McrSeriesCode'=>match($type){'01'=>'F001','03'=>'B001','07'=>'FC01','08'=>'FD01','09'=>'T001',default=>'V001'},
         'McrCorrelative'=>1200+$i,'McrIssueDate'=>'2026-09-13','McrCurrencyCode'=>'PEN','McrCustomerDocumentType'=>'6','McrCustomerDocumentNumber'=>'20123456789',
         'McrCustomerName'=>'Historical no outbox','McrTotalAmount'=>0,'McrStatus'=>'accepted','SecStatus'=>true,'CreateUserId'=>0,'CreateDate'=>now()]);
-    $migration=require database_path('migrations/2026_09_13_000500_add_transactional_outbox_webhooks.php');$migration->down();$migration->up();
+    $migration=require database_path('migrations/2026_09_12_000200_create_mcr_submission_and_outbox_tables.php');$migration->down();$migration->up();
     expect(DB::table('McrDocument')->where('McrCorrelative','>=',1200)->where('McrStateVersion',0)->count())->toBe(6)->and(DB::table('McrOutboxEvent')->count())->toBe(0);
     DB::statement('SET enable_seqscan=off');
     $deliveryPlan=collect(DB::select('EXPLAIN SELECT * FROM "McrWebhookDelivery" WHERE "McrStatus"=? AND "McrNextAttemptAt"<=now()',['retrying']))->pluck('QUERY PLAN')->implode(' ');
@@ -527,7 +527,7 @@ it('keeps historical documents event-free and uses PostgreSQL outbox indexes aft
 });
 
 it('migrates historical references across companies and enforces the internal reference FK', function () {
-    $migration = require database_path('migrations/2026_09_13_000200_extend_document_references_for_notes.php');
+    $migration = require database_path('migrations/2026_09_12_000100_create_mcr_document_tables.php');
     $migration->down();
     $companyA = (int) \App\Models\Empresa::value('McrCompanyConfigID');
     $companyB = (int) \App\Models\Empresa::create([

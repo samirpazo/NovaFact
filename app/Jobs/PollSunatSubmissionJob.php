@@ -7,7 +7,6 @@ use App\Models\Empresa;
 use App\Models\McrDocument;
 use App\Services\Documents\DocumentLifecycle;
 use App\Services\Documents\ProcessingResult;
-use App\Services\Facturacion\ManagedFileService;
 use App\Services\Sunat\GreCdrParser;
 use App\Services\Sunat\GreTransport;
 use Illuminate\Bus\Queueable;
@@ -29,7 +28,7 @@ final class PollSunatSubmissionJob implements ShouldQueue
     public int $tries = 1;
     public function __construct(public int $submissionId) {}
 
-    public function handle(GreTransport $transport, GreCdrParser $parser, DocumentLifecycle $lifecycle, ManagedFileService $files): void
+    public function handle(GreTransport $transport, GreCdrParser $parser, DocumentLifecycle $lifecycle): void
     {
         $claim = DB::transaction(function () {
             $sub=DB::table('McrSunatSubmission')->where('McrSunatSubmissionID',$this->submissionId)->lockForUpdate()->first();
@@ -63,10 +62,9 @@ final class PollSunatSubmissionJob implements ShouldQueue
                 $result=$parser->parse($cdr); $result=new ProcessingResult($result->state,$result->code,$result->description,$result->notes,$result->error,$ticket);
                 $name='R-'.$company->McrRuc.'-'.$doc->McrDocumentType.'-'.$doc->McrSeriesCode.'-'.$doc->McrCorrelative.'.zip';
                 $path='facturacion/'.$company->getKey().'/'.$doc->McrDocumentType.'/'.$doc->McrSeriesCode.'/'.$doc->McrCorrelative.'/'.$name;
-                Storage::disk('local')->put($path,$cdr); $fileId=$files->register($path,$name,'application/zip');
-                $doc->update(['McrCdrPath'=>$path,'McrCdrFilID'=>$fileId]);
+                Storage::disk('local')->put($path,$cdr);
+                $doc->update(['McrCdrPath'=>$path]);
                 $lifecycle->finish($documentId,$this->submissionId,$attemptId,$result,(int)((hrtime(true)-$started)/1_000_000));
-                DB::table('McrSunatResponse')->where('McrSunatSubmissionID',$this->submissionId)->latest('McrSunatResponseID')->limit(1)->update(['McrCdrFilID'=>$fileId]);
                 if (in_array($result->state,[DocumentState::Accepted,DocumentState::AcceptedWithObservations],true)) {
                     $doc->update(['McrArtifactError'=>'GRE PDF generation pending after fiscal outcome.']);
                     RecoverDocumentArtifactsJob::dispatch($documentId,$this->submissionId)->onConnection('documents');

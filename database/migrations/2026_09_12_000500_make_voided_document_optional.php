@@ -1,8 +1,0 @@
-<?php
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-return new class extends Migration {
- public function up(): void { Schema::table('McrVoidedDocument', function(Blueprint $t){$t->unsignedBigInteger('McrDocumentID')->nullable()->change();});}
- public function down(): void { }
-};

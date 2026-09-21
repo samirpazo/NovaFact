@@ -13,7 +13,6 @@ use App\Services\Documents\ProcessingResult;
 use App\Services\Documents\SubmissionCheckpoint;
 use App\Services\Facturacion\DespatchPdfService;
 use App\Services\Facturacion\DespatchService;
-use App\Services\Facturacion\ManagedFileService;
 use App\Services\Sunat\GreenterService;
 use App\Services\Sunat\GreTransport;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +20,7 @@ use Illuminate\Support\Facades\Storage;
 abstract class AbstractDespatchProcessor implements ElectronicDocumentProcessor
 {
     public function __construct(private DespatchService $mapper, private GreenterService $greenter,
-        private GreTransport $transport, private ManagedFileService $files, private DespatchPdfService $pdf,
+        private GreTransport $transport, private DespatchPdfService $pdf,
         private SubmissionCheckpoint $checkpoint) {}
 
     abstract protected function expectedType(): string;
@@ -43,8 +42,7 @@ abstract class AbstractDespatchProcessor implements ElectronicDocumentProcessor
         $zip = $this->zip($name.'.xml', $xml);
         $zipPath = $root.'/'.$name.'.zip';
         Storage::disk('local')->put($zipPath, $zip);
-        $document->update(['McrXmlPath' => $xmlPath, 'McrXmlFilID' => $this->files->register($xmlPath, $name.'.xml', 'application/xml'),
-            'McrZipPath' => $zipPath, 'McrZipFilID' => $this->files->register($zipPath, $name.'.zip', 'application/zip')]);
+        $document->update(['McrXmlPath' => $xmlPath, 'McrZipPath' => $zipPath]);
         $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::SubmissionStarted, true);
         try {
             $sent = $this->transport->send($company, $name, $zip);

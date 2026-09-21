@@ -10,14 +10,13 @@ use App\Models\McrDocument;
 use App\Services\Facturacion\DespatchPdfService;
 use App\Services\Facturacion\DespatchService;
 use App\Services\Facturacion\FacturaService;
-use App\Services\Facturacion\ManagedFileService;
 use App\Services\Facturacion\NoteService;
 use Illuminate\Support\Facades\Storage;
 
 final class ArtifactRecoveryService
 {
     public function __construct(private FacturaService $invoices, private NoteService $notes,
-        private DespatchService $despatches, private DespatchPdfService $despatchPdf, private ManagedFileService $files) {}
+        private DespatchService $despatches, private DespatchPdfService $despatchPdf) {}
 
     public function recover(McrDocument $document, array $payload): void
     {
@@ -36,7 +35,7 @@ final class ArtifactRecoveryService
             $root = dirname($document->McrXmlPath);
             $path = $root.'/'.$model->getName().'.pdf';
             Storage::disk('local')->put($path, $this->despatchPdf->render($model));
-            $document->update(['McrPdfPath' => $path, 'McrPdfFilID' => $this->files->register($path, basename($path), 'application/pdf')]);
+            $document->update(['McrPdfPath' => $path]);
         }
         $document->update(['McrArtifactError' => null]);
     }
