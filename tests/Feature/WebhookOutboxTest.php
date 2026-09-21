@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 
 require_once __DIR__.'/../Support/PipelineDatabase.php';
 
@@ -61,6 +62,21 @@ it('deduplicates a logical transition and keeps an immutable versioned envelope'
         ->and($payload['data']['establishment'])->toBe([
             'external_code'=>'RST-BRANCH-1','sunat_code'=>'0000','name'=>'Sucursal fixture',
         ]);
+});
+
+it('publishes the digest value extracted from the persisted signed XML', function () {
+    Storage::fake('local');
+    $op=app(AdmitElectronicDocument::class)->execute(pipelineContext('digest-event','ERP-digest-event'),pipelinePayload())->toArray();
+    $document=McrDocument::findOrFail($op['document_id']);
+    $xmlPath='facturacion/xml/digest-event.xml';
+    Storage::disk('local')->put($xmlPath, '<?xml version="1.0"?><Invoice xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ext:UBLExtensions><ext:UBLExtension><ext:ExtensionContent><ds:Signature><ds:SignedInfo><ds:Reference URI=""><ds:DigestValue>DIGEST-WEBHOOK</ds:DigestValue></ds:Reference></ds:SignedInfo></ds:Signature></ext:ExtensionContent></ext:UBLExtension></ext:UBLExtensions></Invoice>');
+    $document->update(['McrXmlPath'=>$xmlPath]);
+
+    app(\App\Services\Webhooks\DocumentIntegrationEventPublisher::class)
+        ->publish($document->fresh(),$op['submission_id'],DocumentState::Accepted,1);
+
+    $payload=json_decode(DB::table('McrOutboxEvent')->value('McrPayloadBody'),true);
+    expect($payload['data']['digest_value'])->toBe('DIGEST-WEBHOOK');
 });
 
 it('fans one event to all matching scoped subscriptions only',function(){

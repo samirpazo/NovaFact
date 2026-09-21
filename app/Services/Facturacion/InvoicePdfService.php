@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class InvoicePdfService
 {
-    public function generate(Invoice|Note $invoice, ?string $filename = null): array
+    public function generate(Invoice|Note $invoice, ?string $filename = null, ?string $digestValue = null): array
     {
         $htmlReport = new HtmlReport(resource_path('views/pdf'));
         $htmlReport->setTemplate('invoice.html.twig');
@@ -39,6 +39,7 @@ class InvoicePdfService
         $html = $htmlReport->render($invoice, [
             'system' => [
                 'logo' => $logoContent,
+                'hash' => $digestValue,
             ],
             'user' => [
                 'header' => '',

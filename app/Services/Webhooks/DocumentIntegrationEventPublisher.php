@@ -5,11 +5,14 @@ namespace App\Services\Webhooks;
 use App\Enums\DocumentIntegrationEvent;
 use App\Enums\DocumentState;
 use App\Models\McrDocument;
+use App\Services\Facturacion\SignedXmlDigestValue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 final class DocumentIntegrationEventPublisher
 {
+    public function __construct(private SignedXmlDigestValue $signedXmlDigestValue) {}
+
     public function publish(McrDocument $document, int $submissionId, DocumentState $state, int $stateVersion): ?string
     {
         $type = DocumentIntegrationEvent::fromState($state);
@@ -33,6 +36,7 @@ final class DocumentIntegrationEventPublisher
                     'name' => $document->McrEstablishmentSnapshot['name'] ?? null,
                 ],
                 'sunat_code' => $document->McrSunatCode, 'message' => $this->sanitize($document->McrSunatDescription),
+                'digest_value' => $this->signedXmlDigestValue->extractFromStorage($document->McrXmlPath),
                 'artifacts' => ['pdf' => (bool) $document->McrPdfPath, 'xml' => (bool) $document->McrXmlPath,
                     'cdr' => (bool) $document->McrCdrPath, 'ticket' => (bool) $document->McrSunatTicket],
             ],

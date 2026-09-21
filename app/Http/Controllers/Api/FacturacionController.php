@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFacturaRequest;
 use App\Models\Empresa;
+use App\Services\Facturacion\SignedXmlDigestValue;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -247,6 +248,7 @@ class FacturacionController extends Controller
             'error' => $row->McrError,
             'completed_at' => $row->McrCompletedAt,
             'document_number' => $row->McrSeriesCode ? $row->McrSeriesCode.'-'.$row->McrCorrelative : null,
+            'digest_value' => app(SignedXmlDigestValue::class)->extractFromStorage($row->McrXmlPath),
             'pdf_url' => $row->McrPdfPath ? url('/api/facturacion/archivo/pdf/'.basename($row->McrPdfPath)) : null,
             'xml_url' => $row->McrXmlPath ? url('/api/facturacion/archivo/xml/'.basename($row->McrXmlPath)) : null,
             'zip_url' => $row->McrZipPath ? url('/api/facturacion/archivo/zip/'.basename($row->McrZipPath)) : null,

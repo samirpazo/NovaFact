@@ -21,6 +21,7 @@ class FacturaService
         protected ManagedFileService $managedFileService,
         protected SubmissionCheckpoint $checkpoint,
         protected FiscalCompanyFactory $fiscalCompany,
+        protected SignedXmlDigestValue $signedXmlDigestValue,
     ) {}
 
     /** Process a reserved document without ever allocating another number. */
@@ -47,6 +48,7 @@ class FacturaService
             }
         }
         $document->update(['McrXmlPath' => $xmlPath]);
+        $digestValue = $this->signedXmlDigestValue->extract($xml);
         $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::XmlSigned);
         // Send exactly the signed bytes that were persisted, without signing twice.
         $this->checkpoint->forDocument($document->getKey(), ProcessingCheckpoint::SubmissionStarted, true);
@@ -77,7 +79,7 @@ class FacturaService
                 $document->update(['McrCdrFilID' => $this->managedFileService->register($cdrPath, 'R-'.$name.'.zip', 'application/zip')]);
             }
             if ($result->isSuccess() && $result->getCdrResponse()?->isAccepted()) {
-                $pdf = $this->invoicePdfService->generate($invoice, $name.'.pdf');
+                $pdf = $this->invoicePdfService->generate($invoice, $name.'.pdf', $digestValue);
                 $document->update(['McrPdfPath' => $pdf['path']]);
                 $document->update(['McrPdfFilID' => $this->managedFileService->register($pdf['path'], $name.'.pdf', 'application/pdf')]);
             }
@@ -103,7 +105,8 @@ class FacturaService
         if ($document->McrCdrPath && \Illuminate\Support\Facades\Storage::disk('local')->exists($document->McrCdrPath)) {
             $document->update(['McrCdrFilID' => $this->managedFileService->register($document->McrCdrPath, 'R-'.$name.'.zip', 'application/zip')]);
         }
-        $pdf = $this->invoicePdfService->generate($invoice, $name.'.pdf');
+        $digestValue = $this->signedXmlDigestValue->extractFromStorage($document->McrXmlPath);
+        $pdf = $this->invoicePdfService->generate($invoice, $name.'.pdf', $digestValue);
         $document->update(['McrPdfPath' => $pdf['path'], 'McrPdfFilID' => $this->managedFileService->register($pdf['path'], $name.'.pdf', 'application/pdf')]);
     }
 
