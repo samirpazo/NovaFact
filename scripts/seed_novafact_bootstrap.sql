@@ -5,6 +5,7 @@
 -- Secrets Policy: NO real secrets, passwords, tokens, or private keys.
 -- All credentials (McrSolUser, McrSolPassword, McrCertificatePassword,
 -- McrClientId, McrClientSecret, McrEncryptedSecret) MUST remain NULL.
+-- Idempotent: Safe to execute multiple times (ON CONFLICT DO NOTHING)
 -- =============================================================================
 
 \set ON_ERROR_STOP on
@@ -55,7 +56,7 @@ INSERT INTO "McrCompanyConfig" (
     'Costa Verde',
     NULL,
     NULL,
-    'llama-demo-10711109728.pfx',
+    'LLAMA-PE-CERTIFICADO-DEMO-10711109728.pfx',
     NULL,
     NULL,
     NULL,
@@ -72,7 +73,7 @@ INSERT INTO "McrCompanyConfig" (
     true,
     1,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT ("McrCompanyConfigID") DO NOTHING;
 
 -- 2. McrEstablishment (1 record - DEFAULT Establishment)
 INSERT INTO "McrEstablishment" (
@@ -117,7 +118,7 @@ INSERT INTO "McrEstablishment" (
     true,
     1,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT ("McrEstablishmentID") DO NOTHING;
 
 -- 3. McrSeries (2 records - B001 and F001)
 INSERT INTO "McrSeries" (
@@ -155,7 +156,7 @@ INSERT INTO "McrSeries" (
     true,
     1,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT ("McrSeriesID") DO NOTHING;
 
 -- 4. McrApiClient (1 record - nova-restaurant)
 INSERT INTO "McrApiClient" (
@@ -174,7 +175,7 @@ INSERT INTO "McrApiClient" (
     true,
     1,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT ("McrApiClientID") DO NOTHING;
 
 -- 5. McrWebhookSubscription (1 record - exact 7 integration events, disabled until HMAC configured)
 INSERT INTO "McrWebhookSubscription" (
@@ -197,13 +198,13 @@ INSERT INTO "McrWebhookSubscription" (
     '["document.awaiting_sunat", "document.accepted", "document.accepted_with_observations", "document.rejected", "document.reconciliation_pending", "document.manual_review", "document.failed"]'::jsonb,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT ("McrWebhookSubscriptionID") DO NOTHING;
 
 -- 6. Sequence Adjustments (Synchronize sequences after explicit ID inserts)
-SELECT setval(pg_get_serial_sequence('"McrCompanyConfig"', 'McrCompanyConfigID'), (SELECT MAX("McrCompanyConfigID") FROM "McrCompanyConfig"));
-SELECT setval(pg_get_serial_sequence('"McrEstablishment"', 'McrEstablishmentID'), (SELECT MAX("McrEstablishmentID") FROM "McrEstablishment"));
-SELECT setval(pg_get_serial_sequence('"McrSeries"', 'McrSeriesID'), (SELECT MAX("McrSeriesID") FROM "McrSeries"));
-SELECT setval(pg_get_serial_sequence('"McrApiClient"', 'McrApiClientID'), (SELECT MAX("McrApiClientID") FROM "McrApiClient"));
-SELECT setval(pg_get_serial_sequence('"McrWebhookSubscription"', 'McrWebhookSubscriptionID'), (SELECT MAX("McrWebhookSubscriptionID") FROM "McrWebhookSubscription"));
+SELECT setval(pg_get_serial_sequence('"McrCompanyConfig"', 'McrCompanyConfigID'), COALESCE((SELECT MAX("McrCompanyConfigID") FROM "McrCompanyConfig"), 1));
+SELECT setval(pg_get_serial_sequence('"McrEstablishment"', 'McrEstablishmentID'), COALESCE((SELECT MAX("McrEstablishmentID") FROM "McrEstablishment"), 1));
+SELECT setval(pg_get_serial_sequence('"McrSeries"', 'McrSeriesID'), COALESCE((SELECT MAX("McrSeriesID") FROM "McrSeries"), 1));
+SELECT setval(pg_get_serial_sequence('"McrApiClient"', 'McrApiClientID'), COALESCE((SELECT MAX("McrApiClientID") FROM "McrApiClient"), 1));
+SELECT setval(pg_get_serial_sequence('"McrWebhookSubscription"', 'McrWebhookSubscriptionID'), COALESCE((SELECT MAX("McrWebhookSubscriptionID") FROM "McrWebhookSubscription"), 1));
 
 COMMIT;
