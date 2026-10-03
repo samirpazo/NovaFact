@@ -10,3 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('billing:reconcile --limit=100')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('webhooks:dispatch --limit=100')->everyMinute()->withoutOverlapping();
+
+Schedule::command('billing:fiscal-reconcile --limit=100')->everyMinute()->withoutOverlapping();

@@ -46,8 +46,8 @@ INSERT INTO "McrCompanyConfig" (
 ) VALUES (
     1,
     '20123456789',
-    'Munay S.A.C.',
-    'Munay',
+    'NovaFact Demo S.A.C.',
+    'NovaFact',
     '150122',
     'Lima',
     'Lima',
@@ -68,7 +68,7 @@ INSERT INTO "McrCompanyConfig" (
     18.0,
     false,
     '999 888 777',
-    'nova@restaurant.com',
+    'demo@novafact.example',
     true,
     true,
     1,
@@ -103,7 +103,7 @@ INSERT INTO "McrEstablishment" (
     'DEFAULT',
     '0000',
     'Sede Principal',
-    'Munay',
+    'NovaFact',
     'Av. Principal 123',
     NULL,
     '200110',
@@ -112,7 +112,7 @@ INSERT INTO "McrEstablishment" (
     'La Unión',
     'PE',
     '987 654 321',
-    'sede@restaurant.com',
+    'sede@novafact.example',
     true,
     true,
     true,
@@ -177,7 +177,7 @@ INSERT INTO "McrApiClient" (
     CURRENT_TIMESTAMP
 ) ON CONFLICT ("McrApiClientID") DO NOTHING;
 
--- 5. McrWebhookSubscription (1 record - exact 7 integration events, disabled until HMAC configured)
+-- 5. McrWebhookSubscription (1 record - 8 integration events, disabled until HMAC configured)
 INSERT INTO "McrWebhookSubscription" (
     "McrWebhookSubscriptionID",
     "McrApiClientID",
@@ -195,7 +195,7 @@ INSERT INTO "McrWebhookSubscription" (
     'http://127.0.0.1:8080/api/integrations/sunfacturation/webhook',
     false,
     NULL,
-    '["document.awaiting_sunat", "document.accepted", "document.accepted_with_observations", "document.rejected", "document.reconciliation_pending", "document.manual_review", "document.failed"]'::jsonb,
+    '["document.awaiting_sunat", "document.accepted", "document.accepted_with_observations", "document.rejected", "document.reconciliation_pending", "document.manual_review", "document.failed", "document.void_accepted"]'::jsonb,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
 ) ON CONFLICT ("McrWebhookSubscriptionID") DO NOTHING;

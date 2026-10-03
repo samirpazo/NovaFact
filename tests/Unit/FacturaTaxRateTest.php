@@ -6,8 +6,9 @@ use App\Services\Documents\SubmissionCheckpoint;
 use App\Services\Facturacion\FacturaService;
 use App\Services\Facturacion\FiscalCompanyFactory;
 use App\Services\Facturacion\InvoicePdfService;
+use App\Services\Facturacion\SignedXmlDigestValue;
 use App\Services\Sunat\GreenterService;
-use Greenter\Xml\Builder\InvoiceBuilder;
+use App\Services\Sunat\Xml\ModernInvoiceBuilder;
 
 test('the XML keeps the requested IGV rate and coherent line amounts', function () {
     $company = new Empresa([
@@ -27,7 +28,7 @@ test('the XML keeps the requested IGV rate and coherent line amounts', function 
         Mockery::mock(InvoicePdfService::class),
         app(SubmissionCheckpoint::class),
         new FiscalCompanyFactory,
-        app(\App\Services\Facturacion\SignedXmlDigestValue::class),
+        app(SignedXmlDigestValue::class),
     );
 
     $data = FacturaData::fromArray([
@@ -63,7 +64,7 @@ test('the XML keeps the requested IGV rate and coherent line amounts', function 
         'ubigeo' => '150122', 'department' => 'LIMA', 'province' => 'LIMA',
         'district' => 'MIRAFLORES', 'country_code' => 'PE',
     ]);
-    $xml = (new InvoiceBuilder)->build($invoice);
+    $xml = (new ModernInvoiceBuilder)->build($invoice);
     $document = new DOMDocument;
     $document->loadXML($xml);
     $xpath = new DOMXPath($document);

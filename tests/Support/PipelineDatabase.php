@@ -1,8 +1,13 @@
 <?php
 
-use Illuminate\Database\Schema\Blueprint;
+use App\Models\ApiCredential;
+use App\Models\Empresa;
+use App\Models\McrApiClient;
+use App\Models\McrDocument;
+use App\Models\McrEstablishment;
+use App\Models\McrSeries;
+use App\Services\Documents\AdmissionContext;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 function bootPipelineDatabase(): void
 {
@@ -25,24 +30,29 @@ function bootPipelineDatabase(): void
         (require $file)->up();
     }
     config(['sunat.production' => false, 'services.billing.token' => 'test-token']);
-    \App\Models\McrApiClient::firstOrCreate(['McrCode' => 'legacy'], ['McrName' => 'Legacy client', 'McrIsActive' => true, 'SecStatus' => true]);
-    \App\Models\Empresa::create([
+    McrApiClient::firstOrCreate(['McrCode' => 'legacy'], ['McrName' => 'Legacy client', 'McrIsActive' => true, 'SecStatus' => true]);
+    Empresa::create([
         'McrRuc' => '20123456789', 'McrBusinessName' => 'Pipeline fixture', 'McrEnvironment' => 'beta',
         'McrAddress' => 'Av. Fixture 123', 'McrUbigeo' => '150101', 'McrDepartment' => 'LIMA',
         'McrProvince' => 'LIMA', 'McrDistrict' => 'LIMA',
         'McrIsActive' => true, 'SecStatus' => true, 'McrIgvRate' => 18,
     ]);
-    $establishment = \App\Models\McrEstablishment::create([
-        'McrCompanyConfigID' => \App\Models\Empresa::firstOrFail()->getKey(),
+    $establishment = McrEstablishment::create([
+        'McrCompanyConfigID' => Empresa::firstOrFail()->getKey(),
         'McrExternalCode' => 'RST-BRANCH-1', 'McrSunatCode' => '0000',
         'McrName' => 'Sucursal fixture', 'McrAddress' => 'Av. Fixture 123',
         'McrUbigeo' => '150101', 'McrDepartment' => 'LIMA', 'McrProvince' => 'LIMA',
         'McrDistrict' => 'LIMA', 'McrCountryCode' => 'PE', 'McrIsDefault' => true,
         'McrIsActive' => true, 'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now(),
     ]);
+    $credential = ApiCredential::create([
+        'client_id' => McrApiClient::where('McrCode', 'legacy')->value('McrApiClientID'),
+        'token_hash' => hash('sha256', 'test-token'), 'permissions' => ['read', 'emit', 'admin'], 'created_at' => now(),
+    ]);
+    DB::table('api_credential_companies')->insert(['credential_id' => $credential->id, 'company_id' => $establishment->McrCompanyConfigID]);
     foreach ([['01', 'F001'], ['03', 'B001'], ['07', 'FC01'], ['07', 'BC01'], ['08', 'FD01'], ['08', 'BD01'], ['09', 'T001'], ['31', 'V001']] as [$type, $series]) {
-        \App\Models\McrSeries::create([
-            'McrCompanyConfigID' => \App\Models\Empresa::firstOrFail()->getKey(),
+        McrSeries::create([
+            'McrCompanyConfigID' => Empresa::firstOrFail()->getKey(),
             'McrEstablishmentID' => $establishment->getKey(),
             'McrDocumentType' => $type,
             'McrSeriesCode' => $series,
@@ -55,18 +65,18 @@ function bootPipelineDatabase(): void
     }
 }
 
-function persistedOriginal(string $type = '01', ?int $companyId = null, string $status = 'accepted'): \App\Models\McrDocument
+function persistedOriginal(string $type = '01', ?int $companyId = null, string $status = 'accepted'): McrDocument
 {
-    $companyId ??= \App\Models\Empresa::value('McrCompanyConfigID');
-    $correlative = ((int) \App\Models\McrDocument::where('McrCompanyConfigID', $companyId)
+    $companyId ??= Empresa::value('McrCompanyConfigID');
+    $correlative = ((int) McrDocument::where('McrCompanyConfigID', $companyId)
         ->where('McrDocumentType', $type)->where('McrSeriesCode', $type === '01' ? 'F001' : 'B001')->max('McrCorrelative')) + 1;
     $correlative = max(200, $correlative);
 
-    return \App\Models\McrDocument::create([
-        'McrApiClientID' => \App\Models\McrApiClient::where('McrCode', 'legacy')->value('McrApiClientID'),
+    return McrDocument::create([
+        'McrApiClientID' => McrApiClient::where('McrCode', 'legacy')->value('McrApiClientID'),
         'McrCompanyConfigID' => $companyId,
-        'McrEstablishmentID' => \App\Models\McrEstablishment::where('McrCompanyConfigID', $companyId)->value('McrEstablishmentID'),
-        'McrEstablishmentSnapshot' => \App\Models\McrEstablishment::where('McrCompanyConfigID', $companyId)->first()?->snapshot(),
+        'McrEstablishmentID' => McrEstablishment::where('McrCompanyConfigID', $companyId)->value('McrEstablishmentID'),
+        'McrEstablishmentSnapshot' => McrEstablishment::where('McrCompanyConfigID', $companyId)->first()?->snapshot(),
         'McrDocumentType' => $type, 'McrSeriesCode' => $type === '01' ? 'F001' : 'B001', 'McrCorrelative' => $correlative,
         'McrIssueDate' => '2026-09-01', 'McrIssuedAt' => '2026-09-01T10:00:00-05:00', 'McrCurrencyCode' => 'PEN',
         'McrCustomerDocumentType' => $type === '01' ? '6' : '1',
@@ -99,11 +109,11 @@ function notePayload(string $type = '07', string $kind = 'internal', ?int $docum
     return $payload;
 }
 
-function pipelineContext(string $key = 'test-key-0001', ?string $externalReference = null, ?int $clientId = null, ?int $companyId = null): \App\Services\Documents\AdmissionContext
+function pipelineContext(string $key = 'test-key-0001', ?string $externalReference = null, ?int $clientId = null, ?int $companyId = null): AdmissionContext
 {
-    return new \App\Services\Documents\AdmissionContext(
-        $clientId ?? (int) \App\Models\McrApiClient::where('McrCode', 'legacy')->value('McrApiClientID'),
-        $companyId ?? (int) \App\Models\Empresa::value('McrCompanyConfigID'),
+    return new AdmissionContext(
+        $clientId ?? (int) McrApiClient::where('McrCode', 'legacy')->value('McrApiClientID'),
+        $companyId ?? (int) Empresa::value('McrCompanyConfigID'),
         $key,
         $externalReference,
     );

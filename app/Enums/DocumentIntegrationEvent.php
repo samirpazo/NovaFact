@@ -11,6 +11,7 @@ enum DocumentIntegrationEvent: string
     case ReconciliationPending = 'document.reconciliation_pending';
     case ManualReview = 'document.manual_review';
     case Failed = 'document.failed';
+    case VoidAccepted = 'document.void_accepted';
 
     public static function fromState(DocumentState $state): ?self
     {

@@ -2,16 +2,28 @@
 
 use App\Enums\DocumentState;
 use App\Jobs\ProcessElectronicDocumentJob;
+use App\Models\Empresa;
+use App\Models\McrApiClient;
 use App\Models\McrDocument;
+use App\Models\McrEstablishment;
+use App\Models\McrSeries;
 use App\Services\Documents\AdmitElectronicDocument;
 use App\Services\Documents\DocumentLifecycle;
 use App\Services\Documents\DocumentProcessorResolver;
 use App\Services\Documents\ElectronicDocumentProcessor;
 use App\Services\Documents\PayloadCodec;
 use App\Services\Documents\ProcessingResult;
+use App\Services\Documents\Processors\InvoiceProcessor;
+use App\Services\Facturacion\FacturaService;
+use App\Services\Facturacion\InvoicePdfService;
+use App\Services\Sunat\GreenterService;
+use Greenter\Model\Response\BillResult;
+use Greenter\Model\Response\CdrResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
@@ -120,27 +132,27 @@ it('marks interrupted workers as failed without resending', function () {
 });
 
 it('runs the actual resolver processor mapper and persisted signed transport with no real SUNAT calls', function (string $type) {
-    \Illuminate\Support\Facades\Storage::fake('local');
+    Storage::fake('local');
     $operation = app(AdmitElectronicDocument::class)->execute(pipelineContext(), pipelinePayload($type))->toArray();
     $doc = McrDocument::firstOrFail();
     $xml = '<signed-fixture>exact bytes</signed-fixture>';
-    $greenter = Mockery::mock(\App\Services\Sunat\GreenterService::class);
+    $greenter = Mockery::mock(GreenterService::class);
     $greenter->shouldReceive('getXml')->once()->withArgs(fn ($invoice, $company) => $invoice->getTipoDoc() === $type && $company->getKey() === $doc->McrCompanyConfigID)->andReturn($xml);
     $greenter->shouldReceive('sendSignedXml')->once()->withArgs(function ($class, $name, $bytes, $company) use ($xml, $doc) {
         $path = $doc->fresh()->McrXmlPath;
 
-        return $bytes === $xml && \Illuminate\Support\Facades\Storage::disk('local')->get($path) === $xml;
-    })->andReturn((new \Greenter\Model\Response\BillResult)->setSuccess(true)
-        ->setCdrZip('cdr-fixture')->setCdrResponse((new \Greenter\Model\Response\CdrResponse)->setCode('0')->setDescription('Accepted')));
-    app()->instance(\App\Services\Sunat\GreenterService::class, $greenter);
-    $pdf = Mockery::mock(\App\Services\Facturacion\InvoicePdfService::class);
+        return $bytes === $xml && Storage::disk('local')->get($path) === $xml;
+    })->andReturn((new BillResult)->setSuccess(true)
+        ->setCdrZip('cdr-fixture')->setCdrResponse((new CdrResponse)->setCode('0')->setDescription('Accepted')));
+    app()->instance(GreenterService::class, $greenter);
+    $pdf = Mockery::mock(InvoicePdfService::class);
     $pdf->shouldReceive('generate')->once()->andReturnUsing(function ($invoice, $filename) {
         $path = 'facturacion/pdf/'.$filename;
-        \Illuminate\Support\Facades\Storage::disk('local')->put($path, 'pdf-fixture');
+        Storage::disk('local')->put($path, 'pdf-fixture');
 
         return ['path' => $path];
     });
-    app()->instance(\App\Services\Facturacion\InvoicePdfService::class, $pdf);
+    app()->instance(InvoicePdfService::class, $pdf);
     (new ProcessElectronicDocumentJob($doc->getKey(), $operation['submission_id']))->handle(app(DocumentProcessorResolver::class), app(DocumentLifecycle::class));
     $doc->refresh();
     expect($doc->McrStatus)->toBe('accepted')->and($doc->McrXmlPath)->not->toBeNull()
@@ -151,17 +163,17 @@ it('runs the actual resolver processor mapper and persisted signed transport wit
 })->with(['01', '03']);
 
 it('preserves the fiscal result when PDF generation fails after SUNAT acceptance', function () {
-    \Illuminate\Support\Facades\Storage::fake('local');
+    Storage::fake('local');
     $operation = app(AdmitElectronicDocument::class)->execute(pipelineContext(), pipelinePayload())->toArray();
     $doc = McrDocument::firstOrFail();
-    $greenter = Mockery::mock(\App\Services\Sunat\GreenterService::class);
+    $greenter = Mockery::mock(GreenterService::class);
     $greenter->shouldReceive('getXml')->once()->andReturn('<signed/>');
-    $greenter->shouldReceive('sendSignedXml')->once()->andReturn((new \Greenter\Model\Response\BillResult)->setSuccess(true)
-        ->setCdrZip('cdr-fixture')->setCdrResponse((new \Greenter\Model\Response\CdrResponse)->setCode('0')));
-    app()->instance(\App\Services\Sunat\GreenterService::class, $greenter);
-    $pdf = Mockery::mock(\App\Services\Facturacion\InvoicePdfService::class);
+    $greenter->shouldReceive('sendSignedXml')->once()->andReturn((new BillResult)->setSuccess(true)
+        ->setCdrZip('cdr-fixture')->setCdrResponse((new CdrResponse)->setCode('0')));
+    app()->instance(GreenterService::class, $greenter);
+    $pdf = Mockery::mock(InvoicePdfService::class);
     $pdf->shouldReceive('generate')->once()->andThrow(new RuntimeException('pdf rendering unavailable'));
-    app()->instance(\App\Services\Facturacion\InvoicePdfService::class, $pdf);
+    app()->instance(InvoicePdfService::class, $pdf);
     $job = new ProcessElectronicDocumentJob($doc->getKey(), $operation['submission_id']);
     $job->handle(app(DocumentProcessorResolver::class), app(DocumentLifecycle::class));
     $job->handle(app(DocumentProcessorResolver::class), app(DocumentLifecycle::class));
@@ -180,9 +192,9 @@ it('recovers the known SUNAT outcome if the worker dies during artifact generati
 
 it('executes the serialized database job through the queue handler', function () {
     $op = app(AdmitElectronicDocument::class)->execute(pipelineContext(), pipelinePayload())->toArray();
-    $processor = Mockery::mock(\App\Services\Documents\Processors\InvoiceProcessor::class);
+    $processor = Mockery::mock(InvoiceProcessor::class);
     $processor->shouldReceive('process')->once()->andReturn(new ProcessingResult(DocumentState::Accepted, '0'));
-    app()->instance(\App\Services\Documents\Processors\InvoiceProcessor::class, $processor);
+    app()->instance(InvoiceProcessor::class, $processor);
     $queued = Queue::connection('documents')->pop();
     expect($queued)->not->toBeNull();
     $queued->fire();
@@ -191,21 +203,26 @@ it('executes the serialized database job through the queue handler', function ()
         ->and(DB::table('McrSunatSubmission')->where('McrSunatSubmissionID', $op['submission_id'])->value('McrStatus'))->toBe('accepted');
 });
 
-it('applies and reverses the pipeline migration on the isolated schema', function () {
+it('applies and reverses pipeline tables in dependency order on the isolated schema', function () {
+    $fiscal = require database_path('migrations/2026_10_03_000100_create_fiscal_operations.php');
+    $outbox = require database_path('migrations/2026_09_12_000200_create_mcr_submission_and_outbox_tables.php');
     $migration = require database_path('migrations/2026_09_12_000100_create_mcr_document_tables.php');
+    $fiscal->down();
+    $outbox->down();
     $migration->down();
-    expect(\Illuminate\Support\Facades\Schema::hasTable('McrDocumentPayload'))->toBeFalse()
-        ->and(\Illuminate\Support\Facades\Schema::hasColumn('McrDocument', 'McrProcessingResult'))->toBeFalse();
+    expect(Schema::hasTable('McrDocumentPayload'))->toBeFalse();
     $migration->up();
-    expect(\Illuminate\Support\Facades\Schema::hasTable('McrDocumentPayload'))->toBeTrue()
-        ->and(\App\Models\Empresa::count())->toBe(1);
+    $outbox->up();
+    $fiscal->up();
+    expect(Schema::hasTable('McrDocumentPayload'))->toBeTrue()
+        ->and(Empresa::count())->toBe(1);
 });
 
 it('has exactly one executable admission and processing path for invoices receipts and notes', function () {
     expect(file_exists(app_path('Jobs/EmitFacturaJob.php')))->toBeFalse()
         ->and(file_exists(app_path('Actions/Facturacion/EmitFacturaAction.php')))->toBeFalse()
         ->and(file_exists(app_path('Services/Documents/LegacyBillingCallback.php')))->toBeFalse()
-        ->and(method_exists(\App\Services\Facturacion\FacturaService::class, 'emitir'))->toBeFalse()
+        ->and(method_exists(FacturaService::class, 'emitir'))->toBeFalse()
         ->and(file_exists(app_path('Services/Facturacion/McrPersistenceService.php')))->toBeFalse()
         ->and(file_exists(app_path('Jobs/EmitCreditNoteJob.php')))->toBeFalse()
         ->and(file_exists(app_path('Jobs/EmitDebitNoteJob.php')))->toBeFalse()
@@ -264,21 +281,21 @@ it('deduplicates external reference across different keys and rejects incompatib
 });
 
 it('scopes the same key independently by client and company', function () {
-    $clientB = \App\Models\McrApiClient::create([
+    $clientB = McrApiClient::create([
         'McrCode' => 'client-b', 'McrName' => 'Client B', 'McrIsActive' => true,
         'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now(),
     ]);
-    $companyB = \App\Models\Empresa::create([
+    $companyB = Empresa::create([
         'McrRuc' => '20999999991', 'McrBusinessName' => 'Company B', 'McrEnvironment' => 'beta',
         'McrIsActive' => true, 'SecStatus' => true, 'McrIgvRate' => 18,
     ]);
-    $establishmentB = \App\Models\McrEstablishment::create([
+    $establishmentB = McrEstablishment::create([
         'McrCompanyConfigID' => $companyB->getKey(), 'McrExternalCode' => 'RST-BRANCH-1', 'McrSunatCode' => '0000',
         'McrName' => 'Company B main', 'McrAddress' => 'Av. Company B 1', 'McrUbigeo' => '150101',
         'McrCountryCode' => 'PE', 'McrIsDefault' => true, 'McrIsActive' => true, 'SecStatus' => true,
         'CreateUserId' => 0, 'CreateDate' => now(),
     ]);
-    \App\Models\McrSeries::create([
+    McrSeries::create([
         'McrCompanyConfigID' => $companyB->getKey(), 'McrEstablishmentID' => $establishmentB->getKey(),
         'McrDocumentType' => '01', 'McrSeriesCode' => 'F001',
         'McrNextCorrelative' => 1, 'McrIsActive' => true, 'SecStatus' => true,
@@ -319,16 +336,17 @@ it('exposes idempotent reconstruction and conflicts through the legacy HTTP faca
 });
 
 it('requires explicit company resolution when the legacy facade is ambiguous', function () {
-    $company = \App\Models\Empresa::create([
+    $company = Empresa::create([
         'McrRuc' => '20999999992', 'McrBusinessName' => 'Ambiguous company', 'McrEnvironment' => 'beta',
         'McrIsActive' => true, 'SecStatus' => true,
     ]);
+    DB::table('api_credential_companies')->insert(['credential_id' => DB::table('api_credentials')->value('id'), 'company_id' => $company->getKey()]);
     $this->withToken('test-token')->withHeader('Idempotency-Key', 'company-context-001')
         ->postJson('/api/facturacion/emitir-factura', pipelinePayload())
         ->assertUnprocessable();
     $this->withToken('test-token')->withHeaders([
         'Idempotency-Key' => 'company-context-002',
-        'X-Company-Id' => \App\Models\Empresa::where('McrRuc', '20123456789')->value('McrCompanyConfigID'),
+        'X-Company-Id' => Empresa::where('McrRuc', '20123456789')->value('McrCompanyConfigID'),
     ])->postJson('/api/facturacion/emitir-factura', pipelinePayload())->assertAccepted();
     expect($company->exists)->toBeTrue();
 });

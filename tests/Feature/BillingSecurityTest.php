@@ -1,7 +1,16 @@
 <?php
 
+use Illuminate\Support\Facades\DB;
+
+require_once __DIR__.'/../Support/PipelineDatabase.php';
 beforeEach(function () {
-    config(['services.billing.token' => 'test-token']);
+    bootPipelineDatabase();
+});
+afterEach(function () {
+    if (isset($this->pipelineSchema)) {
+        DB::statement('DROP SCHEMA "'.$this->pipelineSchema.'" CASCADE');
+        DB::disconnect('pipeline_test');
+    }
 });
 
 it('rechaza requests sin token válido', function () {

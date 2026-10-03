@@ -41,6 +41,18 @@ final class DocumentIntegrationEventPublisher
                     'cdr' => (bool) $document->McrCdrPath, 'ticket' => (bool) $document->McrSunatTicket],
             ],
         ];
+        if ($state === DocumentState::VoidAccepted) {
+            $operation = DB::table('fiscal_operations as o')->join('fiscal_operation_items as i', 'i.operation_id', '=', 'o.id')
+                ->where('i.document_id', $document->getKey())->where('o.client_id', $document->McrApiClientID)
+                ->where('o.company_id', $document->McrCompanyConfigID)->where('o.kind', 'void')->where('o.state', 'accepted')
+                ->orderByDesc('o.id')->first(['o.id', 'o.protocol', 'o.ticket', 'o.xml_path', 'o.cdr_path']);
+            if ($operation) {
+                $payload['data']['fiscal_operation'] = ['operation_id' => (int) $operation->id, 'protocol' => $operation->protocol,
+                    'ticket' => $operation->ticket,
+                    'xml_url' => $operation->xml_path ? url('/api/facturacion/operations/'.$operation->id.'/files/xml') : null,
+                    'cdr_url' => $operation->cdr_path ? url('/api/facturacion/operations/'.$operation->id.'/files/cdr') : null];
+            }
+        }
         $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $inserted = DB::table('McrOutboxEvent')->insertOrIgnore([
             'McrOutboxEventID' => $eventId, 'McrDocumentID' => $document->getKey(), 'McrSunatSubmissionID' => $submissionId,

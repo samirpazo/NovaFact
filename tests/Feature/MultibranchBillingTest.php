@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Empresa;
 use App\Models\McrDocument;
 use App\Models\McrEstablishment;
 use App\Models\McrSeries;
@@ -22,7 +23,7 @@ afterEach(function () {
 
 function secondEstablishment(): McrEstablishment
 {
-    $company = \App\Models\Empresa::firstOrFail();
+    $company = Empresa::firstOrFail();
     $establishment = McrEstablishment::create([
         'McrCompanyConfigID' => $company->getKey(), 'McrExternalCode' => 'RST-BRANCH-2', 'McrSunatCode' => '0001',
         'McrName' => 'Sucursal B', 'McrAddress' => 'Av. B 456', 'McrUbigeo' => '150122', 'McrDepartment' => 'LIMA',
@@ -136,7 +137,7 @@ it('administers establishments without destructive deletion or cross-company acc
     $this->withToken('test-token')->withHeaders($headers)
         ->deleteJson('/api/facturacion/configuracion/establecimientos/'.$id)->assertStatus(405);
     $this->withToken('test-token')->withHeaders(['X-Company-Id' => '999999'])
-        ->getJson('/api/facturacion/configuracion/establecimientos')->assertNotFound();
+        ->getJson('/api/facturacion/configuracion/establecimientos')->assertForbidden();
 });
 
 it('returns a scoped read-only fiscal view without company secrets', function () {

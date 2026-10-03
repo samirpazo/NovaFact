@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\EstablishmentController;
 use App\Http\Controllers\Api\FacturacionController;
+use App\Http\Controllers\Api\FiscalOperationController;
 use App\Http\Controllers\Api\WebhookSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,9 +20,11 @@ Route::middleware(['session.token'])->group(function () {
         Route::post('configuracion/establecimientos', [EstablishmentController::class, 'store']);
         Route::patch('configuracion/establecimientos/{id}', [EstablishmentController::class, 'update'])->whereNumber('id');
         Route::post('emitir-factura', [FacturacionController::class, 'emitFactura']);
-        Route::post('boletas/resumen-diario', [FacturacionController::class, 'resumenBoletas']);
-        Route::post('boletas/baja', [FacturacionController::class, 'baja']);
-        Route::get('boletas/resumen/{ticket}', [FacturacionController::class, 'estadoResumen']);
+        Route::post('boletas/resumen-diario', [FiscalOperationController::class, 'summary']);
+        Route::post('boletas/baja', [FiscalOperationController::class, 'void']);
+        Route::get('boletas/resumen/{ticket}', [FiscalOperationController::class, 'ticket']);
+        Route::get('operations/{id}', [FiscalOperationController::class, 'show'])->whereNumber('id');
+        Route::get('operations/{id}/files/{type}', [FiscalOperationController::class, 'file'])->whereNumber('id')->whereIn('type', ['xml', 'cdr']);
         Route::get('submissions/{submissionId}', [FacturacionController::class, 'estadoEnvio']);
         Route::get('configuracion/empresa', [FacturacionController::class, 'companyConfig']);
         Route::put('configuracion/empresa', [FacturacionController::class, 'updateCompanyConfig']);

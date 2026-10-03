@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\McrEstablishment;
+use App\Services\Auth\ApiScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -34,7 +35,7 @@ final class EstablishmentController extends Controller
         $data = $this->validated($request, $company);
         if (($data['is_default'] ?? false) && ($data['is_active'] ?? true)
             && McrEstablishment::where('McrCompanyConfigID', $company->getKey())
-            ->where('McrIsDefault', true)->where('McrIsActive', true)->where('SecStatus', true)->exists()) {
+                ->where('McrIsDefault', true)->where('McrIsActive', true)->where('SecStatus', true)->exists()) {
             abort(422, 'The company already has an active default establishment.');
         }
         $item = McrEstablishment::create($this->columns($data) + ['McrCompanyConfigID' => $company->getKey(),
@@ -74,7 +75,7 @@ final class EstablishmentController extends Controller
         $id = $request->header('X-Company-Id');
         abort_unless(is_string($id) && ctype_digit($id), 422, 'Explicit company scope is required.');
 
-        return Empresa::whereKey((int) $id)->where('McrIsActive', true)->where('SecStatus', true)->firstOrFail();
+        return ApiScope::from($request)->company;
     }
 
     private function validated(Request $request, Empresa $company, ?McrEstablishment $item = null): array
@@ -111,7 +112,7 @@ final class EstablishmentController extends Controller
 
     private function view(McrEstablishment $item): array
     {
-        $series = $item->series()->whereIn('McrDocumentType', ['01', '03'])
+        $series = $item->series()->whereIn('McrDocumentType', ['01', '03', '07', '08', '09', '31'])
             ->orderBy('McrDocumentType')->get(['McrDocumentType', 'McrSeriesCode', 'McrNextCorrelative', 'McrIsActive'])
             ->map(fn ($row) => ['document_type' => $row->McrDocumentType, 'series_code' => $row->McrSeriesCode,
                 'next_correlative' => (int) $row->McrNextCorrelative, 'is_active' => (bool) $row->McrIsActive])->values()->all();
