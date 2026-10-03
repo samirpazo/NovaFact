@@ -43,10 +43,10 @@ SUNAT_CERTIFICATE_NAME=<archivo-certificado>
 SUNAT_CERTIFICATE_PASSWORD=<clave-certificado>
 SUNAT_ENDPOINT=https://e-facturacion.sunat.gob.pe/ol-ti-itcpfegem/billService
 
-BILLING_SERVICE_TOKEN=<token-largo-y-aleatorio>
+# Emitir credenciales por consumidor con billing:credential
 ```
 
-El mismo `BILLING_SERVICE_TOKEN` debe configurarse en Nova (`BillingService:Token`). La URL que Nova usa debe ser la URL HTTPS pública del microservicio, no `127.0.0.1`.
+El token compartido anterior dejó de autenticar. Emite una credencial por consumidor: `php artisan billing:credential issue --client=nova-restaurant --company=1 --permission=read --permission=emit`. Configura el valor mostrado una vez en Nova (`BillingService:Token`). La URL que Nova usa debe ser la URL HTTPS pública del microservicio, no `127.0.0.1`.
 
 ## 3. Certificado digital
 
@@ -95,7 +95,7 @@ En el backend de Nova configurar:
 {
   "BillingService": {
     "Url": "https://facturacion.midominio.com",
-    "Token": "<el-mismo-BILLING_SERVICE_TOKEN>",
+    "Token": "<credencial-revocable-del-consumidor>",
     "ClientCode": "nova-restaurant",
     "CompanyId": 1
   }
@@ -106,7 +106,7 @@ Reconstruir y publicar Nova después de cambiar la URL. El frontend no debe apun
 
 ## 7. Verificación posterior
 
-1. `GET https://facturacion.midominio.com/health/live` responde correctamente.
+1. `GET https://facturacion.midominio.com/up` responde correctamente.
 2. Nova puede consultar la configuración de empresa.
 3. Emitir una boleta/factura de prueba autorizada.
 4. Confirmar que el worker procesa la cola y que Nova obtiene el estado mediante consulta de `submission_id`.
@@ -122,3 +122,26 @@ Reconstruir y publicar Nova después de cambiar la URL. El frontend no debe apun
 4. Configurar series y correlativos.
 5. Publicar Nova con la URL/token nuevos.
 6. Ejecutar una emisión controlada y validar archivos y estado mediante polling.
+
+
+## Workers y recuperación
+
+Ejecutar permanentemente con Supervisor o systemd:
+
+```bash
+php artisan queue:work documents --queue=default --tries=1 --timeout=60 --sleep=1
+php artisan schedule:run
+```
+
+El scheduler debe ejecutarse cada minuto (el segundo comando es la entrada cron).
+La cola `documents` tiene retry_after=180, superior al timeout. El scheduler
+reconcilia documentos, operaciones RC/RA y el outbox; conserva los trabajos fallidos
+para diagnóstico. `manual_review` exige revisión de evidencia antes de reenviar.
+
+La sonda `/up` confirma que Laravel responde; no sustituye la vigilancia de base,
+worker, scheduler, almacenamiento ni servicio fiscal. Desactivar APP_DEBUG y
+WEBHOOK_ALLOW_UNSAFE_LOCAL en producción. Usar TLS y un usuario PostgreSQL restringido.
+Respaldar base y almacenamiento privado conjuntamente; guardar APP_KEY y claves
+fuera del repositorio. Probar restauración en una instancia aislada antes del pase.
+Las credenciales SOL y certificados deben pertenecer a la empresa seleccionada.
+Consultar [la guía de integración](API-INTEGRATION.md) para la migración del token.

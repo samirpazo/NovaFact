@@ -90,3 +90,13 @@ Las pruebas que dependen de PostgreSQL deben ejecutarse contra una instancia Pos
 - `docs/architecture/`: decisiones y fases de arquitectura.
 - `docs/postman/`: colección de integración HTTP.
 - `/docs`: documentación visual de la API.
+
+
+## API fiscal para varios consumidores
+
+La API requiere credenciales revocables vinculadas a empresas autorizadas. El token
+compartido anterior ya no autentica. Consulta [API-INTEGRATION](docs/API-INTEGRATION.md),
+[verificación reproducible](scripts/verification/README.md) y el
+[informe de preparación](docs/READINESS-2026-10-02.md).
+Las bajas y resúmenes se procesan por cola y se consultan mediante operations/{id};
+no se confirman antes de conservar un CDR.

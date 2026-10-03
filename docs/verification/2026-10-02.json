@@ -1,0 +1,223 @@
+{
+    "date": "2026-10-02",
+    "environment": "SUNAT beta SOAP + isolated local PostgreSQL",
+    "suite": {
+        "passed": 237,
+        "assertions": 882,
+        "skipped": 0
+    },
+    "playwright_contract_checks": 10,
+    "documents": [
+        {
+            "McrDocumentID": 1,
+            "McrDocumentType": "01",
+            "McrSeriesCode": "F001",
+            "McrCorrelative": 669872,
+            "McrStatus": "void_accepted",
+            "McrXmlPath": "facturacion/xml/1-20123456789-01-F001-669872.xml",
+            "McrPdfPath": "facturacion/pdf/1-20123456789-01-F001-669872.pdf",
+            "McrCdrPath": "facturacion/cdr/R-1-20123456789-01-F001-669872.zip"
+        },
+        {
+            "McrDocumentID": 2,
+            "McrDocumentType": "03",
+            "McrSeriesCode": "B001",
+            "McrCorrelative": 507214,
+            "McrStatus": "void_accepted",
+            "McrXmlPath": "facturacion/xml/2-20123456789-03-B001-507214.xml",
+            "McrPdfPath": "facturacion/pdf/2-20123456789-03-B001-507214.pdf",
+            "McrCdrPath": "facturacion/cdr/R-2-20123456789-03-B001-507214.zip"
+        },
+        {
+            "McrDocumentID": 3,
+            "McrDocumentType": "07",
+            "McrSeriesCode": "FC01",
+            "McrCorrelative": 231833,
+            "McrStatus": "accepted",
+            "McrXmlPath": "facturacion/xml/3-20123456789-07-FC01-231833.xml",
+            "McrPdfPath": "facturacion/pdf/3-20123456789-07-FC01-231833.pdf",
+            "McrCdrPath": "facturacion/cdr/R-3-20123456789-07-FC01-231833.zip"
+        },
+        {
+            "McrDocumentID": 4,
+            "McrDocumentType": "08",
+            "McrSeriesCode": "FD01",
+            "McrCorrelative": 735823,
+            "McrStatus": "accepted",
+            "McrXmlPath": "facturacion/xml/4-20123456789-08-FD01-735823.xml",
+            "McrPdfPath": "facturacion/pdf/4-20123456789-08-FD01-735823.pdf",
+            "McrCdrPath": "facturacion/cdr/R-4-20123456789-08-FD01-735823.zip"
+        }
+    ],
+    "operations": [
+        {
+            "id": 1,
+            "kind": "summary",
+            "protocol": "RC",
+            "identifier": "20123456789-RC-20261002-1",
+            "state": "accepted",
+            "attempts": 2,
+            "ticket": "1790998283517",
+            "xml_path": "facturacion/operations/20123456789-RC-20261002-1.xml",
+            "cdr_path": "facturacion/operations/R-20123456789-RC-20261002-1.zip"
+        },
+        {
+            "id": 2,
+            "kind": "void",
+            "protocol": "RA",
+            "identifier": "20123456789-RA-20261002-1",
+            "state": "accepted",
+            "attempts": 2,
+            "ticket": "1790998334382",
+            "xml_path": "facturacion/operations/20123456789-RA-20261002-1.xml",
+            "cdr_path": "facturacion/operations/R-20123456789-RA-20261002-1.zip"
+        },
+        {
+            "id": 3,
+            "kind": "void",
+            "protocol": "RC",
+            "identifier": "20123456789-RC-20261002-2",
+            "state": "accepted",
+            "attempts": 2,
+            "ticket": "1790998334513",
+            "xml_path": "facturacion/operations/20123456789-RC-20261002-2.xml",
+            "cdr_path": "facturacion/operations/R-20123456789-RC-20261002-2.zip"
+        }
+    ],
+    "webhooks": [
+        {
+            "event_id": "f3531339-2d2e-4b39-95fe-916b102a977f",
+            "event_type": "document.accepted",
+            "signature_valid": true,
+            "state_version": 3
+        },
+        {
+            "event_id": "2f53b6ca-e36d-4bd6-b874-ae5cfce4552c",
+            "event_type": "document.accepted",
+            "signature_valid": true,
+            "state_version": 3
+        },
+        {
+            "event_id": "bd04a5a0-bb5b-4594-8ff1-827f1a9a8eed",
+            "event_type": "document.accepted",
+            "signature_valid": true,
+            "state_version": 3
+        },
+        {
+            "event_id": "abba19ea-32ae-4c54-83dc-71c74a7b2a35",
+            "event_type": "document.accepted",
+            "signature_valid": true,
+            "state_version": 3
+        },
+        {
+            "event_id": "174383d7-a27e-4991-b9b2-901570d461e9",
+            "event_type": "document.void_accepted",
+            "signature_valid": true,
+            "state_version": 5
+        },
+        {
+            "event_id": "ddbbb0ea-21e4-43a0-86cc-0ce41c447d9c",
+            "event_type": "document.void_accepted",
+            "signature_valid": true,
+            "state_version": 5
+        }
+    ],
+    "artifacts": [
+        {
+            "path": "facturacion/pdf/1-20123456789-01-F001-669872.pdf",
+            "sha256": "04ef1a30e2f01225aa8eb8e4493e825960c893ca61547479d25a763be1ba6dff",
+            "bytes": 35400
+        },
+        {
+            "path": "facturacion/pdf/4-20123456789-08-FD01-735823.pdf",
+            "sha256": "4507e72455c5ce85af8879724db1d2d30af43ce089adef8e44a72e97431fab8b",
+            "bytes": 35651
+        },
+        {
+            "path": "facturacion/pdf/2-20123456789-03-B001-507214.pdf",
+            "sha256": "30941a58652fb6d136c5e9cfee585c701caf415bfa0d131a1b446b8e81ac8748",
+            "bytes": 35320
+        },
+        {
+            "path": "facturacion/pdf/3-20123456789-07-FC01-231833.pdf",
+            "sha256": "9185b526354b48679d23792093a0934d8305b64b58a3b831388a943344d55187",
+            "bytes": 35546
+        },
+        {
+            "path": "facturacion/operations/R-20123456789-RC-20261002-2.zip",
+            "sha256": "cd8ff26c2bdef1c937abdf6e4bbef889d47033591c31e04b82959a754bcf7c3c",
+            "bytes": 1316
+        },
+        {
+            "path": "facturacion/operations/R-20123456789-RC-20261002-1.zip",
+            "sha256": "5464d11bf11b8bac0867a7acf6eb1f3b9a8672aa55a1f2a15e5512151c3ac133",
+            "bytes": 1316
+        },
+        {
+            "path": "facturacion/operations/R-20123456789-RA-20261002-1.zip",
+            "sha256": "ef9a3db3b89929c150557c0a5a2e72fec5c9459bf1059ff89c5d4dc11421a26c",
+            "bytes": 1321
+        },
+        {
+            "path": "facturacion/operations/20123456789-RC-20261002-2.xml",
+            "sha256": "3ef2a2c0b61d3f9fbfb0161abcec6b9667bc98970ee0be9ed9e6ead3f2d9483c",
+            "bytes": 4719
+        },
+        {
+            "path": "facturacion/operations/20123456789-RC-20261002-1.xml",
+            "sha256": "a92cb9ff599a34dab85cf6e593d47023e4ebe0170c6ba09472664bfa1e922dc6",
+            "bytes": 4719
+        },
+        {
+            "path": "facturacion/operations/20123456789-RA-20261002-1.xml",
+            "sha256": "80eceb3c20f4c01f477b37111871327dd867b1f4b83894f4d69a6487ebf4711c",
+            "bytes": 4118
+        },
+        {
+            "path": "facturacion/xml/1-20123456789-01-F001-669872.xml",
+            "sha256": "86e05db8a1c99597a5c7c0bbc8405336c7bc82e36b908f0a37266f2f4933ba2f",
+            "bytes": 6440
+        },
+        {
+            "path": "facturacion/xml/4-20123456789-08-FD01-735823.xml",
+            "sha256": "9c0af00e2def3eb77a80bb96fa16f1b0628267023e56d8d39fcbf72fff228cf8",
+            "bytes": 6649
+        },
+        {
+            "path": "facturacion/xml/2-20123456789-03-B001-507214.xml",
+            "sha256": "c2f157700ade0478a97a8828e17978961260ba3f67c0a6df2221a2d90330c415",
+            "bytes": 6437
+        },
+        {
+            "path": "facturacion/xml/3-20123456789-07-FC01-231833.xml",
+            "sha256": "91dd2a647c9631ef27622e980a4d9c9aa7cb0e1af3fa5d64effea7c7438ac11d",
+            "bytes": 6502
+        },
+        {
+            "path": "facturacion/cdr/R-4-20123456789-08-FD01-735823.zip",
+            "sha256": "a0825ce3d83b63a86ea5e8adf6fada778a1b81e8192633f760b9dc4337ba855e",
+            "bytes": 1324
+        },
+        {
+            "path": "facturacion/cdr/R-1-20123456789-01-F001-669872.zip",
+            "sha256": "aecace471903e748a4f717436c0cc2f8f0a56405e5bf108d16f87941dfb76f73",
+            "bytes": 1324
+        },
+        {
+            "path": "facturacion/cdr/R-2-20123456789-03-B001-507214.zip",
+            "sha256": "fb887b01b38679147da520181b63dbee47ae2cb7cbb7d921d96a2adcabe5ec51",
+            "bytes": 1329
+        },
+        {
+            "path": "facturacion/cdr/R-3-20123456789-07-FC01-231833.zip",
+            "sha256": "e4f4b2e9cd56e902ab5503a619ba97e1fa15e585bb8417c779e56850f7e3df4c",
+            "bytes": 1329
+        }
+    ],
+    "gre_external": "pending: missing client_id/client_secret; configured test provider Nubefact",
+    "restore_check": {
+        "documents": 4,
+        "operations": 3,
+        "delivered_webhooks": 6
+    }
+}

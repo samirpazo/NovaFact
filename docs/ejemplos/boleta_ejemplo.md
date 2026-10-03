@@ -1,53 +1,35 @@
-# Ejemplo: Boleta de Venta Electrónica (03)
+# NovaFact: boleta (03)
 
-Ejemplo de emisión de una boleta de venta para una persona natural identificada con DNI.
+POST `/api/facturacion/emitir-factura` con credencial emit y clave de idempotencia.
+Seleccionar empresa autorizada; registrar establecimiento DEFAULT y serie activa.
+Actualizar fechas antes de ejecutar. Las notas internas necesitan el ID de un documento aceptado propio.
+El correlativo lo asigna el servidor.
 
-### Endpoint
-`POST /api/facturacion/emitir-factura`
-
-### JSON Request Body
 ```json
 {
-  "tipoDoc": "03",
-  "fechaEmision": "2024-03-16T17:05:00-05:00",
-  "tipoMoneda": "PEN",
-  "clientTipoDoc": "1",
-  "clientNumDoc": "44556677",
-  "clientRznSocial": "JUAN PEREZ GARCIA",
-  "mtoOperGravada": 42.37,
-  "mtoIGV": 7.63,
-  "mtoTotal": 50.00,
-  "items": [
-    {
-      "codigo": "P-002",
-      "descripcion": "ALQUILER DE EQUIPOS",
-      "unidad": "NIU",
-      "cantidad": 1,
-      "mtoBaseIgv": 42.37,
-      "igv": 7.63,
-      "mtoValorUnitario": 42.37,
-      "mtoValorVenta": 42.37,
-      "mtoPrecioUnitario": 50.00
-    }
-  ]
+    "tipoDoc": "03",
+    "establishment": "DEFAULT",
+    "serie": "B001",
+    "fechaEmision": "2026-10-03T10:00:00-05:00",
+    "tipoMoneda": "PEN",
+    "clientTipoDoc": "1",
+    "clientNumDoc": "12345678",
+    "clientRznSocial": "Test client",
+    "mtoOperGravada": 100,
+    "mtoIGV": 18,
+    "mtoTotal": 118,
+    "items": [
+        {
+            "descripcion": "Test item",
+            "cantidad": 1,
+            "mtoBaseIgv": 100,
+            "igv": 18,
+            "mtoValorUnitario": 100,
+            "mtoPrecioUnitario": 118,
+            "mtoValorVenta": 100
+        }
+    ]
 }
 ```
 
-### Descripción de campos clave
-*   **`tipoDoc`**: '03' identifica que es una Boleta.
-*   **`serie`** y **`correlativo`**: opcionales. Si se omiten, el servicio selecciona la serie activa de tipo '03' y reserva el siguiente correlativo.
-*   **`Idempotency-Key`**: header recomendado para reintentos seguros; debe ser único por operación lógica.
-*   **`clientTipoDoc`**: '1' indica que el `clientNumDoc` es un DNI.
-*   **`clientRznSocial`**: Nombres completos del cliente.
-*   **Impuestos**: El mtoTotal debe cuadrar con la suma de gravada + IGV (redondeado a 2 decimales).
-
-### Respuesta Exitosa
-```json
-{
-  "success": true,
-  "message": "Comprobante emitido exitosamente",
-  "id": "20600000000-03-B001-52",
-  "description": "La Boleta numero B001-52, ha sido aceptada",
-  "cdr_base64": "UEY..."
-}
-```
+La respuesta es HTTP 202, con submission_id y estado queued; consultar el envío para conocer la aceptación fiscal.

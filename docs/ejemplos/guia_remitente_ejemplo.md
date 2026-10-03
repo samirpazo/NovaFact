@@ -1,58 +1,63 @@
-# Ejemplo: Guía de Remisión Remitente (09)
+# NovaFact: guia_remitente (09)
 
-Este documento es utilizado por el remitente para sustentar el traslado de bienes. En este ejemplo se usa la **Modalidad de Transporte Privado**.
+POST `/api/facturacion/emitir-guia` con credencial emit y clave de idempotencia.
+Seleccionar empresa autorizada; registrar establecimiento DEFAULT y serie activa.
+Actualizar fechas antes de ejecutar. Las notas internas necesitan el ID de un documento aceptado propio.
+El correlativo lo asigna el servidor.
 
-### Endpoint
-`POST /api/facturacion/emitir-guia`
-
-### JSON Request Body
 ```json
 {
-  "tipoDoc": "09",
-  "serie": "T001",
-  "correlativo": "84",
-  "fechaEmision": "2026-03-16",
-  "destinatarioTipoDoc": "6",
-  "destinatarioNumDoc": "20555444333",
-  "destinatarioRznSocial": "ALMACENES GENERALES S.A.",
-  "motivoTraslado": "01",
-  "modalidadTraslado": "02",
-  "fechaTraslado": "2026-03-17",
-  "pesoTotal": 150.00,
-  "unidadMedida": "KGM",
-  "ubigeoPartida": "150101",
-  "direccionPartida": "CALLE LOS PINOS 123, LIMA",
-  "ubigeoLlegada": "150132",
-  "direccionLlegada": "AV. INDUSTRIAL 456, SURRILLO",
-  "placaVehiculo": "V3X998",
-  "choferTipoDoc": "1",
-  "choferNumDoc": "12345678",
-  "choferNombres": "CARLOS",
-  "choferApellidos": "TORRES",
-  "choferLicencia": "A12345678",
-  "details": [
-    {
-      "codigo": "ART-001",
-      "descripcion": "CEMENTO PORTLAND TIPO I - 50KG",
-      "unidad": "NIU",
-      "cantidad": 3
-    }
-  ]
+    "tipoDoc": "09",
+    "serie": "T001",
+    "fechaEmision": "2026-10-03T10:00:00-05:00",
+    "establishment": "DEFAULT",
+    "destinatario": {
+        "tipo_documento": "6",
+        "numero_documento": "20444444441",
+        "razon_social": "Destinatario SAC"
+    },
+    "traslado": {
+        "motivo": "01",
+        "modalidad": "02",
+        "fecha_inicio": "2026-10-04",
+        "peso_bruto": "125.375",
+        "unidad_peso": "KGM",
+        "bultos": 2,
+        "origen": {
+            "ubigeo": "150101",
+            "direccion": "Av. Origen 123"
+        },
+        "destino": {
+            "ubigeo": "150122",
+            "direccion": "Av. Destino 456"
+        },
+        "conductor": {
+            "tipo_documento": "1",
+            "numero_documento": "12345678",
+            "nombres": "Ana",
+            "apellidos": "Quispe",
+            "licencia": "Q12345678"
+        },
+        "vehiculo": {
+            "placa": "ABC123"
+        }
+    },
+    "bienes": [
+        {
+            "codigo": "P001",
+            "descripcion": "Producto de prueba",
+            "unidad": "NIU",
+            "cantidad": "10.500000"
+        }
+    ],
+    "documentos_relacionados": [
+        {
+            "tipo": "01",
+            "numero": "F001-123",
+            "emisor": "20123456789"
+        }
+    ]
 }
 ```
 
-### Descripción de campos clave
-*   **`motivoTraslado`**: '01' (Venta), '04' (Traslado entre establecimientos), etc.
-*   **`modalidadTraslado`**: '02' significa transporte privado (se requiere vehículo y chofer).
-*   **`ubigeoPartida` / `ubigeoLlegada`**: Códigos de 6 dígitos de SUNAT/INEI.
-*   **`details`**: Lista de bienes (en el código también se mapea desde `bienes` si no se usa `details`).
-
-### Respuesta Exitosa
-```json
-{
-  "success": true,
-  "message": "Guía aceptada correctamente",
-  "ticket": "202403160000001",
-  "cdr_base64": "UEY..."
-}
-```
+La respuesta es HTTP 202, con submission_id y estado queued; consultar el envío para conocer la aceptación fiscal.

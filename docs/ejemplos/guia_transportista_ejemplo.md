@@ -1,59 +1,68 @@
-# Ejemplo: Guía de Remisión Transportista (31)
+# NovaFact: guia_transportista (31)
 
-Este documento es emitido por el transportista cuando presta el servicio de transporte público.
+POST `/api/facturacion/emitir-guia` con credencial emit y clave de idempotencia.
+Seleccionar empresa autorizada; registrar establecimiento DEFAULT y serie activa.
+Actualizar fechas antes de ejecutar. Las notas internas necesitan el ID de un documento aceptado propio.
+El correlativo lo asigna el servidor.
 
-### Endpoint
-`POST /api/facturacion/emitir-guia`
-
-### JSON Request Body
 ```json
 {
-  "tipoDoc": "31",
-  "serie": "V001",
-  "correlativo": "10",
-  "fechaEmision": "2024-03-16",
-  "destinatarioTipoDoc": "6",
-  "destinatarioNumDoc": "20999888777",
-  "destinatarioRznSocial": "CLIENTE FINAL S.A.C.",
-  "remitenteTipoDoc": "6",
-  "remitenteNumDoc": "20111222333",
-  "remitenteRznSocial": "PROVEEDOR ORIGEN S.A.",
-  "motivoTraslado": "01",
-  "modalidadTraslado": "01",
-  "fechaTraslado": "2024-03-17",
-  "pesoTotal": 2500.00,
-  "unidadMedida": "KGM",
-  "ubigeoPartida": "150101",
-  "direccionPartida": "BASE LOGISTICA CALLE 5",
-  "ubigeoLlegada": "040101",
-  "direccionLlegada": "ALMACEN AREQUIPA",
-  "placaVehiculo": "B4C-887",
-  "transportistaTipoDoc": "6",
-  "transportistaNumDoc": "20444555666",
-  "transportistaRznSocial": "TRANSPORTES LOGISTICOS S.A.",
-  "transportistaNroMtc": "999888-MTC",
-  "details": [
-    {
-      "codigo": "LOTE-99",
-      "descripcion": "CARGA GENERAL FRACCIONADA",
-      "unidad": "KGM",
-      "cantidad": 2500
+    "tipoDoc": "31",
+    "serie": "V001",
+    "fechaEmision": "2026-10-03T10:00:00-05:00",
+    "establishment": "DEFAULT",
+    "destinatario": {
+        "tipo_documento": "6",
+        "numero_documento": "20444444441",
+        "razon_social": "Destinatario SAC"
+    },
+    "traslado": {
+        "motivo": "01",
+        "modalidad": "02",
+        "fecha_inicio": "2026-10-04",
+        "peso_bruto": "125.375",
+        "unidad_peso": "KGM",
+        "bultos": 2,
+        "origen": {
+            "ubigeo": "150101",
+            "direccion": "Av. Origen 123"
+        },
+        "destino": {
+            "ubigeo": "150122",
+            "direccion": "Av. Destino 456"
+        },
+        "conductor": {
+            "tipo_documento": "1",
+            "numero_documento": "12345678",
+            "nombres": "Ana",
+            "apellidos": "Quispe",
+            "licencia": "Q12345678"
+        },
+        "vehiculo": {
+            "placa": "ABC123"
+        }
+    },
+    "bienes": [
+        {
+            "codigo": "P001",
+            "descripcion": "Producto de prueba",
+            "unidad": "NIU",
+            "cantidad": "10.500000"
+        }
+    ],
+    "documentos_relacionados": [
+        {
+            "tipo": "01",
+            "numero": "F001-123",
+            "emisor": "20123456789"
+        }
+    ],
+    "remitente": {
+        "tipo_documento": "6",
+        "numero_documento": "20333333331",
+        "razon_social": "Remitente SAC"
     }
-  ]
 }
 ```
 
-### Descripción de campos clave
-*   **`tipoDoc`**: '31' identifica Guía de Remisión Transportista.
-*   **`remitenteTipoDoc` / `remitenteNumDoc`**: Requerido para identificar quién envía la mercadería.
-*   **`transportistaNroMtc`**: Número de registro en el Ministerio de Transportes y Comunicaciones.
-*   **`modalidadTraslado`**: '01' (Transporte Público).
-
-### Respuesta Exitosa
-```json
-{
-  "success": true,
-  "message": "Guía aceptada correctamente",
-  "ticket": "202403160000005"
-}
-```
+La respuesta es HTTP 202, con submission_id y estado queued; consultar el envío para conocer la aceptación fiscal.
