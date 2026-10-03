@@ -45,7 +45,7 @@ El script bloquea producción, usa MODDATOS público en memoria, emite documento
 con series de prueba y no escribe documentos en la base. Conserva XML, ZIP CDR y JSON
 en un directorio privado temporal. No incluye secretos en los resultados. Valida el
 adaptador y sus XML contra SUNAT beta; no sustituye las pruebas del pipeline de cola.
-Consulta tickets pendientes sin reenviar: `SUNAT_PRODUCTION=false php scripts/verification/beta.php --company=1 --poll-directory=/ruta/evidencia`. Sin CDR, el resultado sigue pendiente.
+Consulta tickets pendientes sin reenviar: `SUNAT_PRODUCTION=false php scripts/verification/beta.php --company=1 --poll-directory=/ruta/evidencia`. Sin CDR, el resultado sigue pendiente. Si el ticket deja de estar disponible después de la aceptación, se conserva el CDR archivado como evidencia.
 Las guías necesitan client_id/client_secret y el proveedor gre-test.nubefact.com;
 esa aceptación debe registrarse separadamente de SUNAT beta SOAP.
 

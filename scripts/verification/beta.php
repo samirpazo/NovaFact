@@ -53,6 +53,34 @@ if (isset($options['poll-directory'])) {
         if (! is_string($out['ticket'] ?? null) || ! preg_match('/^[A-Za-z0-9._:-]{1,100}$/D', $out['ticket'])) {
             continue;
         }
+        // A retained CDR remains the fiscal evidence even if beta later expires its ticket.
+        $archive = new ZipArchive;
+        $recordedCode = null;
+        if (is_file($directory.'/'.$protocol.'.zip') && $archive->open($directory.'/'.$protocol.'.zip') === true) {
+            for ($index = 0; $index < $archive->numFiles; $index++) {
+                if (! str_ends_with($archive->getNameIndex($index), '.xml')) {
+                    continue;
+                }
+                $document = new DOMDocument;
+                if ($document->loadXML($archive->getFromIndex($index), LIBXML_NONET)) {
+                    $code = (new DOMXPath($document))->evaluate('string(//*[local-name()="ResponseCode"][1])');
+                    if (ctype_digit($code)) {
+                        $recordedCode = $code;
+                    }
+                }
+            }
+            $archive->close();
+        }
+        if ($recordedCode !== null) {
+            $out['status_code'] = '0';
+            $out['cdr_code'] = $recordedCode;
+            $out['evidence_source'] = 'persisted_cdr';
+            unset($out['poll_error']);
+            file_put_contents($path, json_encode($out, JSON_PRETTY_PRINT));
+            echo json_encode($out)."\n";
+
+            continue;
+        }
         $status = $gre->getStatus($out['ticket'], $c);
         $out['status_code'] = $status->getCode();
         $out['cdr_code'] = $status->getCdrResponse()?->getCode();

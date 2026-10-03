@@ -21,7 +21,7 @@ openssl_pkey_export($key, $private);
 Storage::disk('local')->put('certificates/demo.pem', $pem."\n".$private);
 $c->update(['McrCertificateName' => 'demo.pem', 'McrSolUser' => 'MODDATOS', 'McrSolPassword' => 'MODDATOS']);
 $e = McrEstablishment::firstOrCreate(['McrCompanyConfigID' => $c->getKey(), 'McrExternalCode' => 'DEFAULT'], ['McrSunatCode' => '0000', 'McrName' => 'NovaFact Demo', 'McrAddress' => 'Av. Demo 123', 'McrUbigeo' => '150101', 'McrDepartment' => 'LIMA', 'McrProvince' => 'LIMA', 'McrDistrict' => 'LIMA', 'McrCountryCode' => 'PE', 'McrIsDefault' => true, 'McrIsActive' => true, 'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now()]);
-foreach ([['01', 'F001'], ['03', 'B001'], ['07', 'FC01'], ['08', 'FD01']] as [$type,$series]) {
+foreach ([['01', 'F001'], ['03', 'B001'], ['07', 'FC01'], ['08', 'FD01'], ['09', 'T001'], ['31', 'V001']] as [$type,$series]) {
     McrSeries::firstOrCreate(['McrCompanyConfigID' => $c->getKey(), 'McrEstablishmentID' => $e->getKey(), 'McrDocumentType' => $type, 'McrSeriesCode' => $series], ['McrNextCorrelative' => random_int(100000, 999000), 'McrIsActive' => true, 'SecStatus' => true, 'CreateUserId' => 0, 'CreateDate' => now()]);
 }
 echo 'Isolated beta fixtures prepared';
