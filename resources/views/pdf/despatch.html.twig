@@ -6,9 +6,10 @@
         {% include 'assets/document.css.twig' %}
         .section-title { font-size: 8pt; font-weight: bold; margin-bottom: 4px; text-transform: uppercase; }
         .guide-info td { width: 50%; padding: 3px 4px 3px 0; overflow-wrap: break-word; }
-        .guide-items { height: auto; min-height: 180px; }
+        .guide-items { height: auto; }
         .guide-items .items-table { height: auto; }
         .guide-items .items-table td { border-bottom: 1px solid #eee; }
+        .guide-items .items-table tr.filler-row td { height: 130px; border-bottom: none; }
         .guide-footer { margin-top: 8px; }
     </style>
 </head>
@@ -60,7 +61,8 @@
 <div class="items-box guide-items">
     <table class="items-table">
         <thead><tr><th width="7%">Ítem</th><th width="15%">Código</th><th width="53%">Descripción</th><th width="10%">U.M.</th><th width="15%">Cantidad</th></tr></thead>
-        <tbody>{% for det in doc.details %}<tr class="item-row"><td align="center">{{ loop.index }}</td><td align="center">{{ det.codigo|default('-') }}</td><td>{{ det.descripcion }}</td><td align="center">{{ det.unidad }}</td><td align="right">{{ det.cantidad }}</td></tr>{% endfor %}</tbody>
+        <tbody>{% for det in doc.details %}<tr class="item-row"><td align="center">{{ loop.index }}</td><td align="center">{{ det.codigo|default('-') }}</td><td>{{ det.descripcion }}</td><td align="center">{{ det.unidad }}</td><td align="right">{{ det.cantidad }}</td></tr>{% endfor %}
+        <tr class="filler-row"><td></td><td></td><td></td><td></td><td></td></tr></tbody>
     </table>
 </div>
 {% if doc.observacion %}<div class="box-rounded"><div class="obs-title">OBSERVACIONES:</div><div class="obs-content">{{ doc.observacion }}</div></div>{% endif %}
