@@ -1,41 +1,239 @@
-<!doctype html>
-<html lang="es">
-<head>
-    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Nova Facturación · Documentación API</title>
-    <style>
-        :root{color-scheme:dark;--bg:#090d18;--panel:#141a28;--line:#2a354b;--ink:#f4f6fb;--muted:#a6afc0;--blue:#315cff;--green:#77e0b2}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#1d2b5a 0,transparent 36%),var(--bg);color:var(--ink);font:15px/1.6 Inter,system-ui,sans-serif}a{color:#a9bcff;text-decoration:none}a:hover{text-decoration:underline}.bar{height:72px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 max(24px,calc((100% - 1180px)/2));gap:14px;background:#111621ee;backdrop-filter:blur(14px);position:sticky;top:0;z-index:2}.logo{width:38px;height:38px}.brand{font-size:21px;font-weight:750;letter-spacing:-.04em}.brand em{color:#4d72ff;font-style:normal}.layout{width:min(1180px,calc(100% - 42px));margin:auto;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px;padding:46px 0 80px}.toc{position:sticky;top:112px;height:max-content}.toc small{color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700}.toc nav{display:grid;gap:8px;margin-top:16px;border-left:1px solid var(--line);padding-left:15px}.toc a{color:var(--muted);font-size:14px}.toc a:hover{color:var(--ink)}.hero{display:grid;grid-template-columns:1fr 310px;gap:28px;align-items:center}.eyebrow{color:var(--green);font-weight:750;font-size:12px;letter-spacing:.13em;text-transform:uppercase}h1{font-size:clamp(38px,6vw,64px);line-height:1.02;letter-spacing:-.07em;margin:14px 0}h2{font-size:28px;letter-spacing:-.04em;margin:62px 0 16px}h3{font-size:17px;margin:25px 0 7px}p{color:var(--muted);max-width:760px}.lead{font-size:18px}.terminal{background:#0c111e;border:1px solid var(--line);border-radius:14px;padding:18px;color:#c7d4ff;box-shadow:0 18px 45px #0005}code,pre{font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace}code{color:#cbd7ff}.terminal .method{color:var(--green);font-weight:800}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:35px 0}.card{background:linear-gradient(145deg,var(--panel),#101622);border:1px solid var(--line);border-radius:13px;padding:18px}.card strong{display:block;font-size:17px;margin-bottom:5px}.card span{color:var(--muted)}.endpoint{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:13px 0}.endpoint header{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center}.verb{font:800 11px ui-monospace;color:#071118;background:var(--green);border-radius:5px;padding:3px 7px}.verb.get{background:#8fa8ff}.endpoint p{padding:0 16px}.endpoint pre{margin:0;padding:15px 16px;background:#0b101b;overflow:auto;color:#c9d5f7;border-top:1px solid #202d45}.note{border-left:3px solid var(--blue);background:#101a32;padding:13px 16px;margin:18px 0;color:var(--muted)}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}td{color:var(--muted)}.pill{display:inline-block;border:1px solid #3a527c;border-radius:99px;padding:1px 8px;color:#c5d4ff;font-size:12px;margin:2px}@media(max-width:800px){.layout{display:block;width:min(100% - 28px,700px);padding-top:28px}.toc{position:static}.toc nav{display:flex;flex-wrap:wrap;border:0;border-bottom:1px solid var(--line);padding:0 0 16px;margin-bottom:30px;gap:8px 16px}.hero{display:block}.terminal{margin-top:25px}.cards{grid-template-columns:1fr}h2{margin-top:44px}}
-    </style>
-</head>
-<body>
-<header class="bar"><img class="logo" src="{{ asset('logo-nova.svg') }}" alt="Nova"><div class="brand">Nova <em>Facturación</em></div><span style="margin-left:auto;color:var(--muted)">API v1 · PostgreSQL</span></header>
-<div class="layout"><aside class="toc"><small>En esta guía</small><nav><a href="#inicio">Visión general</a><a href="#auth">Autenticación</a><a href="#admitir">Admisión</a><a href="#estados">Estados</a><a href="#archivos">Archivos</a><a href="#webhooks">Webhooks</a><a href="#operar">Operación</a><a href="#rutas">Rutas</a></nav><p><a href="/">← Volver al inicio</a></p></aside>
-<main><section id="inicio" class="hero"><div><div class="eyebrow">Infraestructura fiscal para Perú</div><h1>Emisión confiable, estados trazables.</h1><p class="lead">Admite comprobantes, procesa SUNAT en segundo plano y conserva cada transición con idempotencia, correlativos protegidos y recuperación operativa.</p></div><pre class="terminal"><span class="method">POST</span> /api/facturacion/emitir-factura
-
-{ "tipoDoc": "03",
-  "external_reference": "RST-SALE-42",
-  "mtoTotal": 118.00 }
-
-→ 202 { "status": "queued" }</pre></section>
-<div class="cards"><div class="card"><strong>01 · Factura</strong><span>RUC, razón social y serie activa.</span></div><div class="card"><strong>03 · Boleta</strong><span>DNI o consumidor final.</span></div><div class="card"><strong>Outbox durable</strong><span>Webhooks con retries y DLQ.</span></div></div>
-<section id="auth"><h2>Autenticación y scope</h2><p>Las rutas requieren token válido y un cliente asociado a la empresa emisora.</p><table><tr><th>Header</th><th>Propósito</th></tr><tr><td><code>Authorization: Bearer …</code></td><td>Credencial revocable con permisos read, emit o admin</td></tr><tr><td><code>X-Client-Code</code></td><td>Opcional; debe coincidir con el cliente del token</td></tr><tr><td><code>X-Company-Id</code></td><td>Empresa autorizada; obligatorio si el token permite varias</td></tr><tr><td><code>Idempotency-Key</code></td><td>Retry seguro de la misma operación</td></tr></table></section>
-<section id="admitir"><h2>Admisión y procesamiento</h2><div class="endpoint"><header><span class="verb">POST</span><code>/api/facturacion/emitir-factura</code></header><p>Acepta facturas y boletas. Las rutas de notas y guías completan los seis tipos 01, 03, 07, 08, 09 y 31. La admisión reserva el correlativo dentro de una transacción y encola <code>ProcessElectronicDocumentJob</code>.</p><pre>{
-  "tipoDoc": "03", "fechaEmision": "{{ now()->format('Y-m-d') }}T12:00:00-05:00",
-  "tipoMoneda": "PEN", "clientTipoDoc": "1", "clientNumDoc": "12345678",
-  "clientRznSocial": "CLIENTE DEMO", "mtoOperGravada": 100.00,
-  "mtoIGV": 18.00, "mtoTotal": 118.00, "igvRate": 18.00,
-  "external_reference": "RST-SALE-42", "items": [{"descripcion":"Producto demo","cantidad":1,"mtoBaseIgv":100,"igv":18,"mtoValorUnitario":100,"mtoPrecioUnitario":118,"mtoValorVenta":100}]
-}</pre></div><div class="note"><strong>Idempotencia:</strong> Nova debe conservar <code>RST-SALE-{SalID}-{tipoDoc}</code> como clave y <code>RST-SALE-{SalID}</code> como referencia externa.</div></section>
-<section id="operaciones"><h2>Bajas y resúmenes</h2><p>Usa una clave de idempotencia por operación. La admisión devuelve 202 y operation_id; consulta GET /api/facturacion/operations/{id}. La baja exige document_id, motivo y not_delivered=true. Las boletas y notas de serie B usan RC; las facturas y notas de serie F usan RA. Solo un CDR verificable confirma el resultado.</p></section><section id="estados"><h2>Estados fiscales</h2><div class="endpoint"><header><span class="verb get">GET</span><code>/api/facturacion/submissions/{submissionId}</code></header><p>Devuelve número, error, <code>state_version</code> y disponibilidad de artefactos.</p></div><table><tr><th>Estado</th><th>Significado</th></tr><tr><td><span class="pill">queued</span><span class="pill">processing</span></td><td>Trabajo en curso.</td></tr><tr><td><span class="pill">awaiting_sunat</span></td><td>Resultado remoto pendiente.</td></tr><tr><td><span class="pill">accepted</span><span class="pill">accepted_with_observations</span></td><td>Aceptado fiscalmente.</td></tr><tr><td><span class="pill">reconciliation_pending</span><span class="pill">manual_review</span></td><td>Requiere reconciliación o revisión.</td></tr><tr><td><span class="pill">rejected</span><span class="pill">failed</span></td><td>Terminales distintos; no revierten la venta.</td></tr></table></section>
-<section id="archivos"><h2>XML, CDR y archivos fiscales</h2><div class="cards"><div class="card"><strong>Archivos</strong><span><code>GET /api/facturacion/archivo/{tipo}/{nombre}</code></span></div><div class="card"><strong>PDF fiscal</strong><span>El PDF oficial se genera al procesar el documento.</span></div><div class="card"><strong>Disponibilidad</strong><span>Los archivos pueden llegar después de la aceptación.</span></div></div></section>
-<section id="webhooks"><h2>Webhooks</h2><p>El outbox entrega cambios al sistema consumidor con firma HMAC y protección contra replay. La siguiente ruta es un ejemplo del receptor externo.</p><div class="endpoint"><header><span class="verb">POST</span><code>/api/integrations/sunfacturation/webhook</code></header><pre>X-SunFacturation-Event-Id: evt_…
-X-SunFacturation-Timestamp: 1726250000
-X-SunFacturation-Signature: v1=&lt;hex&gt;</pre></div><p>Eventos duplicados por <code>event_id</code> son idempotentes; una versión mayor prevalece.</p></section>
-<section id="operar"><h2>Operación</h2><pre class="terminal">php artisan migrate --force
-php artisan serve --host=127.0.0.1 --port=8081
-php artisan queue:work documents --queue=default --tries=1 --timeout=60
+@extends('layouts.public')
+@section('title', 'NovaFact · Documentación API')
+@section('content')
+<div class="docs-layout"><aside class="docs-sidebar" data-open="false"><button class="mobile-docs-nav" aria-expanded="false" aria-controls="indice">En esta guía ↓</button><div class="sidebar-content" id="indice"><label class="docs-search-label" for="buscar">Buscar una sección</label><input id="buscar" class="docs-search" type="search" placeholder="Ej. bajas, webhooks"><nav class="docs-nav" aria-label="Índice de documentación"><a href="#inicio">Primeros pasos</a><a href="#auth">Autenticación y permisos</a><a href="#documentos">Documentos y ejemplos</a><a href="#idempotencia">Idempotencia</a><a href="#operaciones">Bajas y resúmenes</a><a href="#estados">Estados y errores</a><a href="#archivos">Archivos fiscales</a><a href="#webhooks">Webhooks</a><a href="#operacion">Operación y validación</a></nav><p class="nav-empty" hidden>Sin coincidencias.</p><a class="sidebar-resource" href="/docs/postman">Descargar colección Postman ↓</a></div></aside><main class="docs-main" id="contenido">
+<section id="inicio"><h1>Integra tu sistema con NovaFact.</h1><p class="docs-lead">Emite comprobantes para tus empresas, consulta su estado fiscal y recibe cada resultado en tu sistema.</p><div class="docs-tools"><a class="button primary" href="/docs/postman">Descargar Postman ↓</a><a href="#documentos">Ver solicitudes completas</a></div><ol><li>Obtén una credencial y selecciona una empresa autorizada.</li><li>Envía el documento con una clave de idempotencia.</li><li>Conserva el identificador de envío y consulta el resultado o recibe un webhook.</li></ol><p class="docs-note"><strong>HTTP 202 confirma la admisión.</strong> La aceptación fiscal llega después, durante el procesamiento y la consulta del resultado remoto.</p></section>
+<section id="auth"><h2>Autenticación y permisos</h2><p>Cada credencial identifica a un sistema consumidor y limita las empresas y acciones disponibles. El token compartido anterior ya no concede acceso general.</p><div class="table-wrap"><table><thead><tr><th>Encabezado</th><th>Uso</th></tr></thead><tbody><tr><td><code>Authorization: Bearer TOKEN</code></td><td>Credencial revocable del consumidor.</td></tr><tr><td><code>X-Company-Id</code></td><td>Empresa autorizada. Obligatorio si hay varias empresas disponibles.</td></tr><tr><td><code>X-Client-Code</code></td><td>Opcional; debe coincidir con el cliente de la credencial.</td></tr><tr><td><code>Idempotency-Key</code></td><td>Identificador estable de la solicitud de emisión u operación.</td></tr></tbody></table></div><p><span class="permission">read</span> permite consultar y descargar; <span class="permission">emit</span> permite emitir; <span class="permission">admin</span> administra credenciales, certificados, configuración y suscripciones. Los permisos se conceden por separado.</p></section>
+<section id="documentos"><h2>Documentos y ejemplos</h2><p>Las solicitudes siguientes coinciden con la colección Postman. Sustituye sus variables con los datos de tu entorno y usa documentos relacionados de la misma empresa para las notas.</p><details class="doc-details"><summary><span class="doc-code">01</span>Factura</summary><div class="endpoint-title"><span class="method post">POST</span><code>/api/facturacion/emitir-factura</code></div><div class="code-block"><header><span>Solicitud JSON · 01</span><button class="copy-button" type="button">Copiar</button></header><pre><code>{
+    "tipoDoc": "01",
+    "establishment": "DEFAULT",
+    "serie": "F001",
+    "fechaEmision": "2026-10-03T10:00:00-05:00",
+    "tipoMoneda": "PEN",
+    "clientTipoDoc": "6",
+    "clientNumDoc": "20123456789",
+    "clientRznSocial": "Test client",
+    "mtoOperGravada": 100,
+    "mtoIGV": 18,
+    "mtoTotal": 118,
+    "items": [
+        {
+            "descripcion": "Test item",
+            "cantidad": 1,
+            "mtoBaseIgv": 100,
+            "igv": 18,
+            "mtoValorUnitario": 100,
+            "mtoPrecioUnitario": 118,
+            "mtoValorVenta": 100
+        }
+    ]
+}</code></pre></div></details><details class="doc-details"><summary><span class="doc-code">03</span>Boleta</summary><div class="endpoint-title"><span class="method post">POST</span><code>/api/facturacion/emitir-factura</code></div><div class="code-block"><header><span>Solicitud JSON · 03</span><button class="copy-button" type="button">Copiar</button></header><pre><code>{
+    "tipoDoc": "03",
+    "establishment": "DEFAULT",
+    "serie": "B001",
+    "fechaEmision": "2026-10-03T10:00:00-05:00",
+    "tipoMoneda": "PEN",
+    "clientTipoDoc": "1",
+    "clientNumDoc": "12345678",
+    "clientRznSocial": "Test client",
+    "mtoOperGravada": 100,
+    "mtoIGV": 18,
+    "mtoTotal": 118,
+    "items": [
+        {
+            "descripcion": "Test item",
+            "cantidad": 1,
+            "mtoBaseIgv": 100,
+            "igv": 18,
+            "mtoValorUnitario": 100,
+            "mtoPrecioUnitario": 118,
+            "mtoValorVenta": 100
+        }
+    ]
+}</code></pre></div></details><details class="doc-details"><summary><span class="doc-code">07</span>Nota Credito</summary><div class="endpoint-title"><span class="method post">POST</span><code>/api/facturacion/emitir-factura</code></div><div class="code-block"><header><span>Solicitud JSON · 07</span><button class="copy-button" type="button">Copiar</button></header><pre><code>{
+    "tipoDoc": "07",
+    "establishment": "DEFAULT",
+    "serie": "FC01",
+    "fechaEmision": "2026-10-03T10:00:00-05:00",
+    "tipoMoneda": "PEN",
+    "clientTipoDoc": "6",
+    "clientNumDoc": "20123456789",
+    "clientRznSocial": "Test client",
+    "mtoOperGravada": 100,
+    "mtoIGV": 18,
+    "mtoTotal": 118,
+    "items": [
+        {
+            "descripcion": "Test item",
+            "cantidad": 1,
+            "mtoBaseIgv": 100,
+            "igv": 18,
+            "mtoValorUnitario": 100,
+            "mtoPrecioUnitario": 118,
+            "mtoValorVenta": 100
+        }
+    ],
+    "reference": {
+        "kind": "internal",
+        "reason_code": "04",
+        "reason": "Ajuste probado",
+        "document_id": 123
+    }
+}</code></pre></div></details><details class="doc-details"><summary><span class="doc-code">08</span>Nota Debito</summary><div class="endpoint-title"><span class="method post">POST</span><code>/api/facturacion/emitir-factura</code></div><div class="code-block"><header><span>Solicitud JSON · 08</span><button class="copy-button" type="button">Copiar</button></header><pre><code>{
+    "tipoDoc": "08",
+    "establishment": "DEFAULT",
+    "serie": "FD01",
+    "fechaEmision": "2026-10-03T10:00:00-05:00",
+    "tipoMoneda": "PEN",
+    "clientTipoDoc": "6",
+    "clientNumDoc": "20123456789",
+    "clientRznSocial": "Test client",
+    "mtoOperGravada": 100,
+    "mtoIGV": 18,
+    "mtoTotal": 118,
+    "items": [
+        {
+            "descripcion": "Test item",
+            "cantidad": 1,
+            "mtoBaseIgv": 100,
+            "igv": 18,
+            "mtoValorUnitario": 100,
+            "mtoPrecioUnitario": 118,
+            "mtoValorVenta": 100
+        }
+    ],
+    "reference": {
+        "kind": "internal",
+        "reason_code": "02",
+        "reason": "Ajuste probado",
+        "document_id": 123
+    }
+}</code></pre></div></details><details class="doc-details"><summary><span class="doc-code">09</span>Guia Remitente</summary><div class="endpoint-title"><span class="method post">POST</span><code>/api/facturacion/emitir-guia</code></div><div class="code-block"><header><span>Solicitud JSON · 09</span><button class="copy-button" type="button">Copiar</button></header><pre><code>{
+    "tipoDoc": "09",
+    "serie": "T001",
+    "fechaEmision": "2026-10-03T10:00:00-05:00",
+    "establishment": "DEFAULT",
+    "destinatario": {
+        "tipo_documento": "6",
+        "numero_documento": "20444444441",
+        "razon_social": "Destinatario SAC"
+    },
+    "traslado": {
+        "motivo": "01",
+        "modalidad": "02",
+        "fecha_inicio": "2026-10-04",
+        "peso_bruto": "125.375",
+        "unidad_peso": "KGM",
+        "bultos": 2,
+        "origen": {
+            "ubigeo": "150101",
+            "direccion": "Av. Origen 123"
+        },
+        "destino": {
+            "ubigeo": "150122",
+            "direccion": "Av. Destino 456"
+        },
+        "conductor": {
+            "tipo_documento": "1",
+            "numero_documento": "12345678",
+            "nombres": "Ana",
+            "apellidos": "Quispe",
+            "licencia": "Q12345678"
+        },
+        "vehiculo": {
+            "placa": "ABC123"
+        }
+    },
+    "bienes": [
+        {
+            "codigo": "P001",
+            "descripcion": "Producto de prueba",
+            "unidad": "NIU",
+            "cantidad": "10.500000"
+        }
+    ],
+    "documentos_relacionados": [
+        {
+            "tipo": "01",
+            "numero": "F001-123",
+            "emisor": "20123456789"
+        }
+    ]
+}</code></pre></div></details><details class="doc-details"><summary><span class="doc-code">31</span>Guia Transportista</summary><div class="endpoint-title"><span class="method post">POST</span><code>/api/facturacion/emitir-guia</code></div><div class="code-block"><header><span>Solicitud JSON · 31</span><button class="copy-button" type="button">Copiar</button></header><pre><code>{
+    "tipoDoc": "31",
+    "serie": "V001",
+    "fechaEmision": "2026-10-03T10:00:00-05:00",
+    "establishment": "DEFAULT",
+    "destinatario": {
+        "tipo_documento": "6",
+        "numero_documento": "20444444441",
+        "razon_social": "Destinatario SAC"
+    },
+    "traslado": {
+        "motivo": "01",
+        "modalidad": "02",
+        "fecha_inicio": "2026-10-04",
+        "peso_bruto": "125.375",
+        "unidad_peso": "KGM",
+        "bultos": 2,
+        "origen": {
+            "ubigeo": "150101",
+            "direccion": "Av. Origen 123"
+        },
+        "destino": {
+            "ubigeo": "150122",
+            "direccion": "Av. Destino 456"
+        },
+        "conductor": {
+            "tipo_documento": "1",
+            "numero_documento": "12345678",
+            "nombres": "Ana",
+            "apellidos": "Quispe",
+            "licencia": "Q12345678"
+        },
+        "vehiculo": {
+            "placa": "ABC123"
+        }
+    },
+    "bienes": [
+        {
+            "codigo": "P001",
+            "descripcion": "Producto de prueba",
+            "unidad": "NIU",
+            "cantidad": "10.500000"
+        }
+    ],
+    "documentos_relacionados": [
+        {
+            "tipo": "01",
+            "numero": "F001-123",
+            "emisor": "20123456789"
+        }
+    ],
+    "remitente": {
+        "tipo_documento": "6",
+        "numero_documento": "20333333331",
+        "razon_social": "Remitente SAC"
+    }
+}</code></pre></div></details></section><section id="idempotencia"><h2>Idempotencia</h2><p>Genera una clave por operación de negocio y conserva esa misma clave en los reintentos. Debe tener entre 8 y 128 caracteres: letras, números, puntos, guiones, dos puntos o guiones bajos.</p><p>La misma clave y el mismo contenido recuperan la operación existente. Una clave reutilizada con contenido distinto devuelve <code>409</code>. Conserva también <code>external_reference</code> para relacionar el documento con tu venta.</p></section>
+<section id="operaciones"><h2>Bajas y resúmenes</h2><p>Estas operaciones se persisten y procesan en cola. Su respuesta de admisión incluye <code>operation_id</code>; consulta <code>GET /api/facturacion/operations/{id}</code> hasta conocer el resultado fiscal.</p><h3>Resumen</h3><div class="endpoint-title"><span class="method post">POST</span><code>/api/facturacion/boletas/resumen-diario</code></div><div class="code-block"><header><span>Solicitud JSON</span><button class="copy-button" type="button">Copiar</button></header><pre><code>{
+    "fecha": "2026-10-03"
+}</code></pre></div><h3>Baja</h3><div class="endpoint-title"><span class="method post">POST</span><code>/api/facturacion/boletas/baja</code></div><div class="code-block"><header><span>Solicitud JSON</span><button class="copy-button" type="button">Copiar</button></header><pre><code>{
+    "document_id": 123,
+    "motivo": "Documento no entregado",
+    "not_delivered": true
+}</code></pre></div><p>Las bajas de boletas y notas de serie B se comunican mediante resumen diario RC. Las facturas y notas de serie F usan comunicación de baja RA. La solicitud exige <code>document_id</code>, <code>motivo</code> y <code>not_delivered=true</code>.</p><p>El resumen incluye documentos aceptados disponibles para esa fecha. Si hay varias monedas, selecciona la moneda. Cada documento queda reservado para evitar que dos operaciones lo incluyan simultáneamente.</p><p class="docs-note">Solo el CDR confirma una baja. Una respuesta ambigua requiere reconciliación; no reenvíes automáticamente ni reutilices su número.</p></section>
+<section id="estados"><h2>Estados y errores</h2><div class="endpoint-title"><span class="method get">GET</span><code>/api/facturacion/submissions/{submissionId}</code></div><p>Consulta el estado, el error fiscal, <code>state_version</code> y la disponibilidad de archivos. Usa la versión para procesar actualizaciones en orden.</p><div class="table-wrap"><table><thead><tr><th>Estado</th><th>Qué hacer</th></tr></thead><tbody><tr><td><code>queued</code> / <code>processing</code></td><td>Esperar el procesamiento.</td></tr><tr><td><code>awaiting_sunat</code></td><td>Esperar la respuesta o consulta del ticket.</td></tr><tr><td><code>accepted</code> / <code>accepted_with_observations</code></td><td>Conservar el CDR y revisar las observaciones.</td></tr><tr><td><code>reconciliation_pending</code> / <code>manual_review</code></td><td>Resolver el resultado ambiguo antes de reenviar.</td></tr><tr><td><code>rejected</code> / <code>failed</code></td><td>Revisar el error; distinguir rechazo fiscal de fallo técnico.</td></tr><tr><td><code>void_accepted</code></td><td>Baja confirmada del documento.</td></tr></tbody></table></div><p><code>401</code>: credencial inválida; <code>403</code>: permisos o empresa no autorizados; <code>404</code>: recurso no disponible para ese consumidor; <code>409</code>: conflicto; <code>422</code>: solicitud inválida. Inspecciona el cuerpo del error antes de reintentar.</p></section>
+<section id="archivos"><h2>Archivos fiscales</h2><p>Descarga XML firmado, PDF y CDR cuando la consulta indique su disponibilidad. Las descargas mantienen el mismo aislamiento por consumidor y empresa.</p><div class="code-block"><header><span>Rutas de consulta</span><button class="copy-button" type="button">Copiar</button></header><pre><code>GET /api/facturacion/archivo/{tipo}/{nombre}
+GET /api/facturacion/operations/{id}/files/xml
+GET /api/facturacion/operations/{id}/files/cdr
+GET /api/facturacion/boletas/resumen/{ticket}</code></pre></div><p>El PDF es una representación del comprobante. Conserva el XML y el CDR como evidencia del documento y su respuesta fiscal.</p></section>
+<section id="webhooks"><h2>Webhooks</h2><p>Configura una suscripción con una credencial <code>admin</code>. La entrega usa outbox, firma HMAC y reintentos; tu receptor debe tolerar eventos duplicados.</p><div class="code-block"><header><span>Encabezados del evento</span><button class="copy-button" type="button">Copiar</button></header><pre><code>X-SunFacturation-Event-Id: identificador-del-evento
+X-SunFacturation-Timestamp: timestamp
+X-SunFacturation-Signature: v1=&lt;hex&gt;</code></pre></div><p>Verifica HMAC-SHA256 sobre <code>timestamp.cuerpo_original</code> con el secreto de la suscripción y una comparación de tiempo constante. Valida la antigüedad del timestamp; deduplica por <code>event_id</code> y aplica solo versiones nuevas.</p><p>El evento de baja aceptada incluye <code>data.fiscal_operation</code> para vincular el documento con la operación y sus archivos fiscales.</p></section>
+<section id="operacion"><h2>Operación y validación</h2><div class="code-block"><header><span>Procesos necesarios</span><button class="copy-button" type="button">Copiar</button></header><pre><code>php artisan queue:work documents --queue=default --tries=1 --timeout=60
+php artisan schedule:run
 php artisan webhooks:status
 php artisan billing:reconcile --limit=100
-php artisan billing:fiscal-reconcile --limit=100
-php artisan schedule:work</pre><div class="note"><strong>Pruebas:</strong> usa <code>SUNAT_PRODUCTION=false</code> y PostgreSQL. SQLite solo aplica a lógica que no dependa del motor.</div></section>
-<section id="rutas"><h2>Rutas adicionales</h2><div class="grid"><div class="card"><strong>Configuración</strong><span><code>GET/PUT /api/facturacion/configuracion/empresa</code><br><code>GET /api/facturacion/configuracion/establecimientos</code></span></div><div class="card"><strong>Boletas</strong><span><code>POST /api/facturacion/boletas/resumen-diario</code><br><code>GET /api/facturacion/boletas/resumen/{ticket}</code></span></div><div class="card"><strong>Webhooks</strong><span><code>/api/webhooks/subscriptions</code><br>Crear, rotar y redeliver.</span></div></div><p><a href="/">Inicio</a> · <a href="/docs/postman">Colección Postman</a></p></section></main></div></body></html>
+php artisan billing:fiscal-reconcile --limit=100</code></pre></div><p>Supervisa el worker y ejecuta el scheduler cada minuto. Configura <code>retry_after</code> mayor que el timeout del worker. La ruta <code>/up</code> comprueba que la aplicación responde; complementa con comprobaciones de base de datos y cola.</p><div class="notice"><strong>Evidencia disponible y pruebas pendientes</strong><p>Factura, boleta, notas, bajas y resumen diario cuentan con evidencia en SUNAT beta SOAP. Las guías requieren pruebas externas GRE y credenciales del servicio configurado. El proveedor de pruebas GRE y SUNAT beta son entornos distintos.</p></div><p>Consulta el contrato completo y la guía operativa en el repositorio. Usa <code>SUNAT_PRODUCTION=false</code> para pruebas y conserva solicitudes depuradas, tickets y artefactos.</p></section></main></div><div class="copy-status" role="status" aria-live="polite"></div>
+@endsection

@@ -125,23 +125,23 @@
     "artifacts": [
         {
             "path": "facturacion/pdf/1-20123456789-01-F001-669872.pdf",
-            "sha256": "04ef1a30e2f01225aa8eb8e4493e825960c893ca61547479d25a763be1ba6dff",
-            "bytes": 35400
+            "sha256": "f3629e20b3069b25e4c30db02acb18098c4e38247597cd819c7fa1e336e3bb14",
+            "bytes": 46100
         },
         {
             "path": "facturacion/pdf/4-20123456789-08-FD01-735823.pdf",
-            "sha256": "4507e72455c5ce85af8879724db1d2d30af43ce089adef8e44a72e97431fab8b",
-            "bytes": 35651
+            "sha256": "994683c8959a7e0c8ad1bcb4f56174c85b17c32dca316deecbb49316d23796bb",
+            "bytes": 46353
         },
         {
             "path": "facturacion/pdf/2-20123456789-03-B001-507214.pdf",
-            "sha256": "30941a58652fb6d136c5e9cfee585c701caf415bfa0d131a1b446b8e81ac8748",
-            "bytes": 35320
+            "sha256": "5964420d7492e452fe66307efcaa6c057227dbf454a489280c059c9ccdd84d86",
+            "bytes": 46022
         },
         {
             "path": "facturacion/pdf/3-20123456789-07-FC01-231833.pdf",
-            "sha256": "9185b526354b48679d23792093a0934d8305b64b58a3b831388a943344d55187",
-            "bytes": 35546
+            "sha256": "834667f332d7713365e56a88031bf7e1208c03c5b31859d68f04d463466fc65e",
+            "bytes": 46248
         },
         {
             "path": "facturacion/operations/R-20123456789-RC-20261002-2.zip",
@@ -219,5 +219,18 @@
         "documents": 4,
         "operations": 3,
         "delivered_webhooks": 6
+    },
+    "presentation_refresh": {
+        "date": "2026-10-02",
+        "logo": "public/logo-nova.png",
+        "conversion": "SVG rasterized to transparent PNG, 600 × 401",
+        "pdfs_regenerated": 4,
+        "xml_cdr_unchanged": true,
+        "fiscal_resubmissions": 0,
+        "suite": {
+            "passed": 238,
+            "assertions": 887,
+            "skipped": 0
+        }
     }
 }

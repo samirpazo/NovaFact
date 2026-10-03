@@ -89,7 +89,7 @@ Las pruebas que dependen de PostgreSQL deben ejecutarse contra una instancia Pos
 
 - `docs/architecture/`: decisiones y fases de arquitectura.
 - `docs/postman/`: colección de integración HTTP.
-- `/docs`: documentación visual de la API.
+- `/docs`: guía de integración con índice, búsqueda de secciones, ejemplos JSON copiables, permisos, estados, bajas y webhooks. Comparte diseño y navegación con `/`.
 
 
 ## API fiscal para varios consumidores
@@ -100,3 +100,7 @@ compartido anterior ya no autentica. Consulta [API-INTEGRATION](docs/API-INTEGRA
 [informe de preparación](docs/READINESS-2026-10-02.md).
 Las bajas y resúmenes se procesan por cola y se consultan mediante operations/{id};
 no se confirman antes de conservar un CDR.
+
+El logo web se conserva en `public/logo-nova.svg`; su versión PNG transparente,
+`public/logo-nova.png`, se usa como respaldo exclusivamente para NovaFact demo
+en beta. Las demás empresas usan su propio logo configurado.

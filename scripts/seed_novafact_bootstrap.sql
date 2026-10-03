@@ -61,7 +61,7 @@ INSERT INTO "McrCompanyConfig" (
     NULL,
     NULL,
     'beta',
-    'facturacion/logo/company-logo.jpg',
+    NULL,
     'PEN',
     16.0,
     2.0,

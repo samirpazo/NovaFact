@@ -18,15 +18,17 @@ class InvoicePdfService
         $htmlReport->setTemplate('invoice.html.twig');
 
         $logoContent = null;
-        $companyConfig = Empresa::where('McrRuc', $invoice->getCompany()?->getRuc())->first();
+        $logoMime = 'png';
+        $companyConfig = Empresa::where('McrRuc', $invoice->getCompany()?->getRuc())
+            ->where('McrEnvironment', config('sunat.production') ? 'production' : 'beta')->first();
         if ($companyConfig?->McrLogoPath && Storage::disk('local')->exists($companyConfig->McrLogoPath)) {
             $logoContent = Storage::disk('local')->get($companyConfig->McrLogoPath);
-        } elseif (Storage::disk('local')->exists('facturacion/logo/company-logo.jpg')) {
-            $logoContent = Storage::disk('local')->get('facturacion/logo/company-logo.jpg');
-        } else {
-            $logoContent = base64_decode(
-                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLzWQAAAABJRU5ErkJggg=='
-            );
+            $logoMime = str_replace('image/', '', (new \finfo(FILEINFO_MIME_TYPE))->buffer($logoContent));
+        } elseif ($companyConfig?->McrEnvironment === 'beta'
+            && $companyConfig->McrRuc === '20123456789'
+            && str_starts_with($companyConfig->McrBusinessName, 'NovaFact')) {
+            $logoContent = file_get_contents(public_path('logo-nova.png'));
+            $logoMime = 'png';
         }
 
         $firstDetail = ($invoice->getDetails() ?? [])[0] ?? null;
@@ -39,6 +41,7 @@ class InvoicePdfService
         $html = $htmlReport->render($invoice, [
             'system' => [
                 'logo' => $logoContent,
+                'logo_mime' => $logoMime,
                 'hash' => $digestValue,
             ],
             'user' => [

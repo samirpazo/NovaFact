@@ -257,7 +257,7 @@
                 <tr>
                     {% if params.system.logo %}
                     <td style="padding-right: 10px; vertical-align: middle; width: 70px; text-align: center;">
-                        <img src="{{ params.system.logo|image_b64 }}" style="max-height: 70px; max-width: 70px;" border="0">
+                        <img src="{{ params.system.logo|image_b64(params.system.logo_mime|default('png')) }}" style="max-height: 70px; max-width: 70px;" border="0">
                     </td>
                     {% endif %}
                     <td style="vertical-align: middle;">
