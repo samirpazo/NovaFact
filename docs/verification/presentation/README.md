@@ -14,3 +14,16 @@ Actualización del 2 de octubre de 2026, posterior a la evidencia fiscal existen
 Las capturas adjuntas documentan la revisión visual. El PDF de factura muestra el logo visible; los cuatro PDF contienen el PNG con su canal de transparencia.
 
 Las guías GRE siguen pendientes de credenciales y validación externa, según el informe fiscal previo. Esta actualización no altera su clasificación.
+
+## Guías con estilo compartido
+
+`guide-09.png` y `guide-31.png` representan los PDFs demo regenerados con la cabecera,
+tipografía, bordes y tabla de comprobantes. Se conservó el logo, el QR del CDR demo,
+peso, bultos, remitente, destinatario, vehículo, conductor, licencia y registro MTC.
+Los hashes actualizados de los PDFs están en `../2026-10-02-gre.json`; XML/ZIP/CDR no
+se modificaron.
+
+`production-desktop.png` y `production-mobile.png` muestran la sección de producción.
+Playwright verificó 11 anclas existentes, ausencia de desbordamiento móvil y descarga
+HTTP 200 de `NovaFact-Produccion.md`. El enlace de inicio apunta a `#produccion`.
+Una guía de 45 bienes conservó todas las líneas y el QR en cuatro páginas.

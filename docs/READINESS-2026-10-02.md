@@ -93,6 +93,10 @@ La credencial read/emit para nova-restaurant y empresa 1 está en
 El token compartido anterior ya no autentica: cada consumidor debe migrar siguiendo
 [API-INTEGRATION](API-INTEGRATION.md). La administración utiliza una credencial aparte.
 
+Los PDFs de guías ahora comparten estilos y cabecera con facturas, boletas y notas;
+se regeneraron únicamente PDFs demo, preservando XML/ZIP/CDR. Para credenciales y
+despliegue, consultar [la guía de producción](PRODUCCION.md).
+
 ## Pendientes y límites
 
 1. **GRE demo completado:** ambos tipos aceptados por gre-test.nubefact.com; no equivale
