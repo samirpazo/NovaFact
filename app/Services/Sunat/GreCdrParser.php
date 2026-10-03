@@ -19,13 +19,16 @@ final class GreCdrParser
         $zip->close(); @unlink($temp);
         if (! is_string($xml)) throw new \RuntimeException('GRE CDR ZIP has no XML.');
         $dom = new \DOMDocument; if (! @$dom->loadXML($xml)) throw new \RuntimeException('Invalid GRE CDR XML.');
-        $xp = new \DOMXPath($dom); $xp->registerNamespace('cbc','urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+        $xp = new \DOMXPath($dom); $xp->registerNamespace('cac','urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2'); $xp->registerNamespace('cbc','urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
         $code = trim((string) $xp->evaluate('string(//cbc:ResponseCode[1])'));
         $description = trim((string) $xp->evaluate('string(//cbc:Description[1])'));
         $notes=[]; foreach ($xp->query('//cbc:Note') ?: [] as $node) $notes[] = trim($node->textContent);
         if ($code === '' || ! ctype_digit($code)) throw new \RuntimeException('GRE CDR has no verifiable response code.');
         $state = ((int)$code === 0) ? ($notes ? DocumentState::AcceptedWithObservations : DocumentState::Accepted) : DocumentState::Rejected;
-        return new ProcessingResult($state, $code, $description, $notes, failureCategory: match ($state) {
+        $url = trim((string) $xp->evaluate('string(//cac:DocumentResponse/cac:DocumentReference/cbc:DocumentDescription[1])'));
+        $metadata = filter_var($url, FILTER_VALIDATE_URL) && in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true)
+            ? ['qr_url' => $url] : [];
+        return new ProcessingResult($state, $code, $description, $notes, metadata: $metadata, failureCategory: match ($state) {
             DocumentState::Accepted => FailureCategory::RemoteAccepted,
             DocumentState::AcceptedWithObservations => FailureCategory::RemoteAcceptedWithObservations,
             default => FailureCategory::RemoteRejected,

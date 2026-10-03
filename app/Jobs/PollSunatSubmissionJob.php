@@ -59,7 +59,7 @@ final class PollSunatSubmissionJob implements ShouldQueue
             if ($status->pending()) { $this->recordPending($attemptId,$pollCount,'98',null,$started,$claimToken); return; }
             if ($status->cdrZip) {
                 $cdr=base64_decode($status->cdrZip,true); if ($cdr===false) throw new \RuntimeException('Invalid GRE CDR encoding.');
-                $result=$parser->parse($cdr); $result=new ProcessingResult($result->state,$result->code,$result->description,$result->notes,$result->error,$ticket);
+                $result=$parser->parse($cdr); $result=new ProcessingResult($result->state,$result->code,$result->description,$result->notes,$result->error,$ticket,metadata:$result->metadata,failureCategory:$result->failureCategory);
                 $name='R-'.$company->McrRuc.'-'.$doc->McrDocumentType.'-'.$doc->McrSeriesCode.'-'.$doc->McrCorrelative.'.zip';
                 $path='facturacion/'.$company->getKey().'/'.$doc->McrDocumentType.'/'.$doc->McrSeriesCode.'/'.$doc->McrCorrelative.'/'.$name;
                 Storage::disk('local')->put($path,$cdr);
@@ -72,7 +72,7 @@ final class PollSunatSubmissionJob implements ShouldQueue
                 return;
             }
             if ($status->code==='99') {
-                $result=new ProcessingResult(DocumentState::Rejected,$status->errorCode,$status->error ?: 'SUNAT rejected the GRE.',ticket:$ticket);
+                $result=new ProcessingResult(DocumentState::Rejected,$status->errorCode,$status->error ?: 'SUNAT rejected the GRE.',ticket:$ticket,failureCategory:FailureCategory::RemoteRejected);
                 $lifecycle->finish($documentId,$this->submissionId,$attemptId,$result,(int)((hrtime(true)-$started)/1_000_000)); return;
             }
             $this->recordPending($attemptId,$pollCount,$status->code,'Unexpected GRE status; polling remains recoverable.',$started,$claimToken);

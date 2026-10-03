@@ -212,10 +212,12 @@ class FacturacionController extends Controller
 
     public function estadoEnvio(Request $request, int $submissionId): JsonResponse
     {
-        $row = ApiScope::from($request)->documents(DB::table('McrSunatSubmission as s')->join('McrDocument as d', 'd.McrDocumentID', '=', 's.McrDocumentID'), 'd.')->where('s.McrSunatSubmissionID', $submissionId)->select('s.*', 'd.McrDocumentType', 'd.McrSeriesCode', 'd.McrCorrelative', 'd.McrStateVersion', 'd.McrPdfPath', 'd.McrXmlPath', 'd.McrZipPath', 'd.McrCdrPath')->first();
+        $row = ApiScope::from($request)->documents(DB::table('McrSunatSubmission as s')->join('McrDocument as d', 'd.McrDocumentID', '=', 's.McrDocumentID'), 'd.')->where('s.McrSunatSubmissionID', $submissionId)->select('s.*', 'd.McrDocumentType', 'd.McrSeriesCode', 'd.McrCorrelative', 'd.McrStateVersion', 'd.McrPdfPath', 'd.McrXmlPath', 'd.McrZipPath', 'd.McrCdrPath', 'd.McrSunatCode', 'd.McrSunatDescription', 'd.McrProcessingResult')->first();
         if (! $row) {
             return response()->json(['message' => 'Envío no encontrado'], 404);
         }
+
+        $fiscalResult = json_decode($row->McrProcessingResult ?? '{}', true) ?? [];
 
         return response()->json([
             'success' => true,
@@ -230,6 +232,9 @@ class FacturacionController extends Controller
             'recovery_status' => in_array($row->McrStatus, ['reconciliation_pending', 'manual_review'], true) ? $row->McrStatus : null,
             'ticket' => $row->McrTicket,
             'error' => $row->McrError,
+            'sunat_code' => $row->McrSunatCode,
+            'sunat_description' => $row->McrSunatDescription,
+            'notes' => $fiscalResult['notes'] ?? [],
             'completed_at' => $row->McrCompletedAt,
             'document_number' => $row->McrSeriesCode ? $row->McrSeriesCode.'-'.$row->McrCorrelative : null,
             'digest_value' => app(SignedXmlDigestValue::class)->extractFromStorage($row->McrXmlPath),

@@ -1,0 +1,225 @@
+[
+  {
+    "submission": {
+      "success": true,
+      "submission_id": 1,
+      "document_id": 1,
+      "state_version": 4,
+      "status": "accepted_with_observations",
+      "recovery_status": null,
+      "ticket": "test-6a5c0bd5-7f48-42d1-a610-dce8ebbea183",
+      "error": null,
+      "sunat_code": "0",
+      "sunat_description": "ACEPTADA",
+      "notes": [
+        "CDR de prueba"
+      ],
+      "completed_at": "2026-10-02 23:25:11-05",
+      "document_number": "T001-441073",
+      "digest_value": "ynLjqKBHd2Wl/J+84mOsQqVqrSo=",
+      "pdf_url": "http://127.0.0.1:18083/api/facturacion/archivo/pdf/20161515648-09-T001-441073.pdf",
+      "xml_url": "http://127.0.0.1:18083/api/facturacion/archivo/xml/20161515648-09-T001-441073.xml",
+      "zip_url": "http://127.0.0.1:18083/api/facturacion/archivo/zip/20161515648-09-T001-441073.zip",
+      "cdr_url": "http://127.0.0.1:18083/api/facturacion/archivo/cdr/R-20161515648-09-T001-441073.zip"
+    },
+    "artifacts": [
+      {
+        "type": "xml",
+        "bytes": 6380,
+        "http": 200
+      },
+      {
+        "type": "zip",
+        "bytes": 2661,
+        "http": 200
+      },
+      {
+        "type": "pdf",
+        "bytes": 21328,
+        "http": 200
+      },
+      {
+        "type": "cdr",
+        "bytes": 1140,
+        "http": 200
+      }
+    ],
+    "ticket_http": 200
+  },
+  {
+    "submission": {
+      "success": true,
+      "submission_id": 2,
+      "document_id": 2,
+      "state_version": 4,
+      "status": "rejected",
+      "recovery_status": null,
+      "ticket": "test-0a347f74-60a2-4711-b08c-d6e39ae7572f",
+      "error": null,
+      "sunat_code": "3383",
+      "sunat_description": "INFO: 3383 (nodo: \"/\" valor: \"\")",
+      "notes": [],
+      "completed_at": "2026-10-02 23:25:12-05",
+      "document_number": "V001-647063",
+      "digest_value": "8FozZ8kWSfKt8rMcgoEZo4ouHbQ=",
+      "pdf_url": null,
+      "xml_url": "http://127.0.0.1:18083/api/facturacion/archivo/xml/20161515648-31-V001-647063.xml",
+      "zip_url": "http://127.0.0.1:18083/api/facturacion/archivo/zip/20161515648-31-V001-647063.zip",
+      "cdr_url": null
+    },
+    "artifacts": [
+      {
+        "type": "xml",
+        "bytes": 7077,
+        "http": 200
+      },
+      {
+        "type": "zip",
+        "bytes": 2720,
+        "http": 200
+      }
+    ],
+    "ticket_http": 200
+  },
+  {
+    "submission": {
+      "success": true,
+      "submission_id": 3,
+      "document_id": 3,
+      "state_version": 4,
+      "status": "accepted_with_observations",
+      "recovery_status": null,
+      "ticket": "test-e16219b7-8d52-4af8-a918-b77540627508",
+      "error": null,
+      "sunat_code": "0",
+      "sunat_description": "ACEPTADA",
+      "notes": [
+        "CDR de prueba"
+      ],
+      "completed_at": "2026-10-02 23:30:46-05",
+      "document_number": "V001-647064",
+      "digest_value": "AhH7KDvtvQcsMKc+IXU4boNe2/I=",
+      "pdf_url": "http://127.0.0.1:18083/api/facturacion/archivo/pdf/20161515648-31-V001-647064.pdf",
+      "xml_url": "http://127.0.0.1:18083/api/facturacion/archivo/xml/20161515648-31-V001-647064.xml",
+      "zip_url": "http://127.0.0.1:18083/api/facturacion/archivo/zip/20161515648-31-V001-647064.zip",
+      "cdr_url": "http://127.0.0.1:18083/api/facturacion/archivo/cdr/R-20161515648-31-V001-647064.zip"
+    },
+    "artifacts": [
+      {
+        "type": "xml",
+        "bytes": 7751,
+        "http": 200
+      },
+      {
+        "type": "zip",
+        "bytes": 2895,
+        "http": 200
+      },
+      {
+        "type": "pdf",
+        "bytes": 22484,
+        "http": 200
+      },
+      {
+        "type": "cdr",
+        "bytes": 1142,
+        "http": 200
+      }
+    ],
+    "ticket_http": 200
+  },
+  {
+    "submission": {
+      "success": true,
+      "submission_id": 4,
+      "document_id": 4,
+      "state_version": 4,
+      "status": "accepted_with_observations",
+      "recovery_status": null,
+      "ticket": "test-f0075be6-8182-484a-beb4-f46d1f28c3a8",
+      "error": null,
+      "sunat_code": "0",
+      "sunat_description": "ACEPTADA",
+      "notes": [
+        "CDR de prueba"
+      ],
+      "completed_at": "2026-10-02 23:40:47-05",
+      "document_number": "T001-441074",
+      "digest_value": "4NPR6DRv2F5tYjy7d1qeSSwtvyU=",
+      "pdf_url": "http://127.0.0.1:18083/api/facturacion/archivo/pdf/20161515648-09-T001-441074.pdf",
+      "xml_url": "http://127.0.0.1:18083/api/facturacion/archivo/xml/20161515648-09-T001-441074.xml",
+      "zip_url": "http://127.0.0.1:18083/api/facturacion/archivo/zip/20161515648-09-T001-441074.zip",
+      "cdr_url": "http://127.0.0.1:18083/api/facturacion/archivo/cdr/R-20161515648-09-T001-441074.zip"
+    },
+    "artifacts": [
+      {
+        "type": "xml",
+        "bytes": 6380,
+        "http": 200
+      },
+      {
+        "type": "zip",
+        "bytes": 2662,
+        "http": 200
+      },
+      {
+        "type": "pdf",
+        "bytes": 21326,
+        "http": 200
+      },
+      {
+        "type": "cdr",
+        "bytes": 1140,
+        "http": 200
+      }
+    ],
+    "ticket_http": 200
+  },
+  {
+    "submission": {
+      "success": true,
+      "submission_id": 5,
+      "document_id": 5,
+      "state_version": 4,
+      "status": "accepted_with_observations",
+      "recovery_status": null,
+      "ticket": "test-859cf86b-caef-4fc7-a3f9-1b985d7495ef",
+      "error": null,
+      "sunat_code": "0",
+      "sunat_description": "ACEPTADA",
+      "notes": [
+        "CDR de prueba"
+      ],
+      "completed_at": "2026-10-02 23:40:48-05",
+      "document_number": "V001-647065",
+      "digest_value": "fegui2oEciVIk1DFnW1rtIZeODY=",
+      "pdf_url": "http://127.0.0.1:18083/api/facturacion/archivo/pdf/20161515648-31-V001-647065.pdf",
+      "xml_url": "http://127.0.0.1:18083/api/facturacion/archivo/xml/20161515648-31-V001-647065.xml",
+      "zip_url": "http://127.0.0.1:18083/api/facturacion/archivo/zip/20161515648-31-V001-647065.zip",
+      "cdr_url": "http://127.0.0.1:18083/api/facturacion/archivo/cdr/R-20161515648-31-V001-647065.zip"
+    },
+    "artifacts": [
+      {
+        "type": "xml",
+        "bytes": 7751,
+        "http": 200
+      },
+      {
+        "type": "zip",
+        "bytes": 2889,
+        "http": 200
+      },
+      {
+        "type": "pdf",
+        "bytes": 22482,
+        "http": 200
+      },
+      {
+        "type": "cdr",
+        "bytes": 1140,
+        "http": 200
+      }
+    ],
+    "ticket_http": 200
+  }
+]

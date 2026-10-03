@@ -7,6 +7,8 @@ use App\Enums\ProcessingCheckpoint;
 use App\Exceptions\ClassifiedSubmissionException;
 use App\Models\Empresa;
 use App\Services\Sunat\Xml\ModernInvoiceBuilder;
+use App\Services\Sunat\Xml\CarrierDespatchBuilder;
+use Greenter\Model\Despatch\Despatch;
 use Greenter\Model\DocumentInterface;
 use Greenter\Model\Response\BillResult;
 use Greenter\Model\Response\SummaryResult;
@@ -90,6 +92,10 @@ class GreenterService
 
         if ($document instanceof Invoice) {
             return $this->see->getFactory()->setBuilder(new ModernInvoiceBuilder(['autoescape' => false]))->getXmlSigned($document) ?? '';
+        }
+
+        if ($document instanceof Despatch && $document->getTipoDoc() === '31') {
+            return $this->see->getFactory()->setBuilder(new CarrierDespatchBuilder(['autoescape' => false]))->getXmlSigned($document) ?? '';
         }
 
         return $this->see->getXmlSigned($document) ?? '';

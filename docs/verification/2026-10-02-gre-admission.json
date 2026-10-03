@@ -1,0 +1,131 @@
+[
+  {
+    "type": "09",
+    "key": "nova-gre-v2-2026-10-02-09",
+    "payload": {
+      "tipoDoc": "09",
+      "serie": "T001",
+      "establishment": "NOVA-GRE",
+      "fechaEmision": "2026-10-02T00:01:00-05:00",
+      "destinatario": {
+        "tipo_documento": "6",
+        "numero_documento": "20444444441",
+        "razon_social": "Destinatario Demo"
+      },
+      "traslado": {
+        "motivo": "01",
+        "modalidad": "02",
+        "fecha_inicio": "2026-10-02",
+        "peso_bruto": "125.375",
+        "unidad_peso": "KGM",
+        "bultos": 2,
+        "origen": {
+          "ubigeo": "150101",
+          "direccion": "Av. Origen Demo 123"
+        },
+        "destino": {
+          "ubigeo": "150122",
+          "direccion": "Av. Destino Demo 456"
+        },
+        "conductor": {
+          "tipo_documento": "1",
+          "numero_documento": "12345678",
+          "nombres": "Ana",
+          "apellidos": "Quispe",
+          "licencia": "Q12345678"
+        },
+        "vehiculo": {
+          "placa": "ABC123"
+        }
+      },
+      "bienes": [
+        {
+          "codigo": "P001",
+          "descripcion": "Producto de prueba NovaFact",
+          "unidad": "NIU",
+          "cantidad": "10.5"
+        }
+      ]
+    },
+    "admission": {
+      "document_id": 4,
+      "submission_id": 4,
+      "status": "accepted_with_observations",
+      "series_code": "T001",
+      "correlative": 441074,
+      "document_number": "T001-00441074"
+    },
+    "duplicate_status": 202,
+    "conflict_status": 409
+  },
+  {
+    "type": "31",
+    "key": "nova-gre-v2-2026-10-02-31",
+    "payload": {
+      "tipoDoc": "31",
+      "serie": "V001",
+      "establishment": "NOVA-GRE",
+      "fechaEmision": "2026-10-02T00:01:00-05:00",
+      "destinatario": {
+        "tipo_documento": "6",
+        "numero_documento": "20444444441",
+        "razon_social": "Destinatario Demo"
+      },
+      "traslado": {
+        "motivo": "01",
+        "modalidad": "01",
+        "fecha_inicio": "2026-10-02",
+        "peso_bruto": "125.375",
+        "unidad_peso": "KGM",
+        "bultos": 2,
+        "origen": {
+          "ubigeo": "150101",
+          "direccion": "Av. Origen Demo 123"
+        },
+        "destino": {
+          "ubigeo": "150122",
+          "direccion": "Av. Destino Demo 456"
+        },
+        "conductor": {
+          "tipo_documento": "1",
+          "numero_documento": "12345678",
+          "nombres": "Ana",
+          "apellidos": "Quispe",
+          "licencia": "Q12345678"
+        },
+        "vehiculo": {
+          "placa": "ABC123"
+        },
+        "transportista": {
+          "tipo_documento": "6",
+          "numero_documento": "20161515648",
+          "razon_social": "NovaFact GRE Demo",
+          "registro_mtc": "1512345CNG"
+        }
+      },
+      "bienes": [
+        {
+          "codigo": "P001",
+          "descripcion": "Producto de prueba NovaFact",
+          "unidad": "NIU",
+          "cantidad": "10.5"
+        }
+      ],
+      "remitente": {
+        "tipo_documento": "6",
+        "numero_documento": "20333333331",
+        "razon_social": "Remitente Demo"
+      }
+    },
+    "admission": {
+      "document_id": 5,
+      "submission_id": 5,
+      "status": "accepted_with_observations",
+      "series_code": "V001",
+      "correlative": 647065,
+      "document_number": "V001-00647065"
+    },
+    "duplicate_status": 202,
+    "conflict_status": 409
+  }
+]

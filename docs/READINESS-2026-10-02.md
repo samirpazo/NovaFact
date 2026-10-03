@@ -1,8 +1,8 @@
 # NovaFact: preparación como API fiscal
 
 **La implementación local y los flujos SOAP beta comprobados están preparados para
-integración. El pase integral a producción sigue condicionado a la validación externa
-GRE y a la configuración real de producción.** No se emitió ningún documento productivo.
+integración. El pase integral a producción sigue condicionado a la configuración y validación real de producción.
+Ambas guías fueron aceptadas por el proveedor GRE de pruebas.** No se emitió ningún documento productivo.
 
 ## Fortalezas conservadas
 
@@ -30,7 +30,7 @@ Los cambios reutilizan ese pipeline para la emisión y añaden operaciones durab
 
 ## Evidencia y matriz
 
-Suite PostgreSQL aislada: **237 pruebas, 882 aserciones, cero omitidas y cero
+Suite PostgreSQL aislada: **243 pruebas, 899 aserciones, cero omitidas y cero
 advertencias de deprecación**. Incluye dos consumidores/dos empresas, revocación,
 permisos, notas ajenas, archivos/tickets ajenos, sobreacreditación, idempotencia,
 concurrencia de numeración y envío/consulta, recuperación antes/después del contacto, resúmenes sucesivos sin duplicar documentos y exclusión de bajas durante un resumen pendiente.
@@ -41,8 +41,8 @@ concurrencia de numeración y envío/consulta, recuperación antes/después del 
 | Boleta 03 | HTTP → cola → consulta → XML/PDF/CDR | SUNAT beta, CDR 0 |
 | Nota de crédito 07 | Referencia interna a factura beta, HTTP/cola/artefactos | SUNAT beta, CDR 0 |
 | Nota de débito 08 | Referencia interna a factura beta, HTTP/cola/artefactos | SUNAT beta, CDR 0 |
-| Guía remitente 09 | Mapeo, XML, pipeline, rechazo/recuperación con transporte simulado | Pendiente: faltan client_id/client_secret GRE |
-| Guía transportista 31 | Mapeo, XML, pipeline, rechazo/recuperación con transporte simulado | Pendiente: faltan client_id/client_secret GRE |
+| Guía remitente 09 | HTTP, cola, consulta, XML/ZIP/PDF con logo y QR/CDR | Nubefact GRE demo, CDR 0 con observación «CDR de prueba» |
+| Guía transportista 31 | HTTP, cola, consulta, XML/ZIP/PDF con logo y QR/CDR | Nubefact GRE demo, CDR 0 con observación «CDR de prueba» |
 | Resumen diario RC | Admisión HTTP, envío y polling por cola, XML/CDR | SUNAT beta, CDR 0; ticket 1790998283517 |
 | Baja factura RA | Admisión HTTP, envío y polling por cola, estado fiscal posterior | SUNAT beta, CDR 0; ticket 1790998334382 |
 | Baja boleta RC estado 3 | Admisión HTTP, envío y polling por cola, estado fiscal posterior | SUNAT beta, CDR 0; ticket 1790998334513 |
@@ -59,6 +59,30 @@ tamaños y SHA-256. Los artefactos están en
 `storage/app/private/readiness/2026-10-02/facturacion`, excluidos de Git.
 Las claves privadas y los tokens no forman parte del manifiesto.
 
+## Cierre GRE con MODDATOS
+
+Se configuró `credentials.local.json` y la base local con SOL público MODDATOS/MODDATOS.
+SOAP conserva el RUC ficticio 20123456789; GRE usa una empresa demo separada, RUC
+20161515648, requerido por el proveedor. La empresa GRE local es 2; su credencial
+API está en `storage/app/private/novafact-gre-demo-credential.json` (0600).
+El certificado autofirmado `novafact-demo.pem` se usa exclusivamente para pruebas.
+Los demás apartados privados de `credentials.local.json` se conservaron.
+
+La primera guía transportista recibió 3383. Se corrigió el remitente dentro de
+`Shipment/Delivery/Despatch/DespatchParty`, antes de firmar el XML, y se preservó
+el rechazo original. Cuatro guías posteriores/del remitente obtuvieron CDR 0,
+con observación «CDR de prueba». Los PDFs incluyen logo Nova y el QR demo devuelto
+por el CDR; dicho QR no acredita una verificación productiva.
+
+Playwright comprobó admisión, duplicados, conflicto 409, consultas, cinco tickets y
+18 descargas. Tras reiniciar la API, las mismas claves conservaron sus IDs.
+Cinco webhooks se entregaron con HMAC válido. El respaldo se restauró en otra base:
+cinco documentos, cinco entregas y cero trabajos pendientes.
+[Manifiesto GRE](verification/2026-10-02-gre.json),
+[admisión](verification/2026-10-02-gre-admission.json) y
+[resultados HTTP](verification/2026-10-02-gre-results.json).
+Los archivos y respaldo están en `storage/app/private/readiness/2026-10-02/gre`.
+
 ## Base demo y migración de consumidores
 
 La base local nova_structural_test permanece en beta. Munay se sustituyó por
@@ -71,9 +95,9 @@ El token compartido anterior ya no autentica: cada consumidor debe migrar siguie
 
 ## Pendientes y límites
 
-1. **GRE externo:** configurar client_id/client_secret de pruebas y ejecutar ambos
-   documentos contra gre-test.nubefact.com. Es aceptación del proveedor de pruebas,
-   separada de SUNAT beta SOAP; no hay evidencia externa GRE todavía.
+1. **GRE demo completado:** ambos tipos aceptados por gre-test.nubefact.com; no equivale
+   a aceptación GRE productiva de SUNAT. Falta validar con credenciales propias,
+   certificado válido y las variantes reales de traslado antes de producción.
 2. **Producción:** certificado y SOL reales, credenciales GRE productivas, TLS,
    APP_DEBUG=false, WEBHOOK_ALLOW_UNSAFE_LOCAL=false, supervisor de workers/scheduler,
    respaldo de base/artefactos/APP_KEY y restauración ensayada con esa infraestructura.
@@ -91,8 +115,9 @@ El token compartido anterior ya no autentica: cada consumidor debe migrar siguie
    ni medir volumen máximo diario. Los resúmenes de monedas distintas se separan
    usando currency. Una combinación de monedas sin selección se rechaza.
 
-Por ello, el criterio de salida integral de los seis tipos permanece **pendiente de
-GRE externo**. No se presenta una prueba simulada como aceptación fiscal.
+Los seis tipos cuentan con evidencia externa de los entornos de pruebas disponibles:
+SOAP en SUNAT beta y GRE en el proveedor demo. El pase a producción continúa sujeto
+a los requisitos anteriores; ninguna emisión de esta entrega fue productiva.
 
 ## Reglas consultadas
 

@@ -34,7 +34,12 @@ final class ArtifactRecoveryService
             $model = $this->despatches->map($company, DespatchData::fromArray($payload));
             $root = dirname($document->McrXmlPath);
             $path = $root.'/'.$model->getName().'.pdf';
-            Storage::disk('local')->put($path, $this->despatchPdf->render($model));
+            $result = json_decode($document->McrProcessingResult, true, flags: JSON_THROW_ON_ERROR);
+            $qrUrl = $result['metadata']['qr_url'] ?? null;
+            if (! $qrUrl && $document->McrCdrPath && Storage::disk('local')->exists($document->McrCdrPath)) {
+                $qrUrl = app(\App\Services\Sunat\GreCdrParser::class)->parse(Storage::disk('local')->get($document->McrCdrPath))->metadata['qr_url'] ?? null;
+            }
+            Storage::disk('local')->put($path, $this->despatchPdf->render($model, $qrUrl));
             $document->update(['McrPdfPath' => $path]);
         }
         $document->update(['McrArtifactError' => null]);

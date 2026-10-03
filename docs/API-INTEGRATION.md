@@ -27,7 +27,8 @@ las notas requieren `reference` (interna: document_id; externa: identidad fiscal
 moneda, cliente y motivo). Una referencia interna debe pertenecer al mismo consumidor.
 
 La admisión devuelve 202 y submission_id. No equivale a aceptación fiscal. Consultar
-GET `submissions/{submissionId}` y sus artefactos. Mantener una Idempotency-Key estable
+GET `submissions/{submissionId}` y sus artefactos. La consulta expone `sunat_code`,
+`sunat_description` y `notes`; un rechazo fiscal puede tener `error` técnico nulo. Mantener una Idempotency-Key estable
 por operación (8–128 caracteres: letras, dígitos, punto, guion, dos puntos, guion bajo).
 Repetir exactamente el payload devuelve la operación previa; cambiarlo con la misma
 clave devuelve 409. No usar una nueva clave para resolver un timeout ambiguo.

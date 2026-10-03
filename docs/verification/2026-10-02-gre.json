@@ -1,0 +1,147 @@
+{
+  "environment": "Nubefact GRE public demo; not SUNAT production",
+  "documents": 5,
+  "accepted_with_observations": 4,
+  "rejected_initial": 1,
+  "fixed_rejection_code": "3383",
+  "webhooks": [
+    {
+      "event_id": "5b7722e4-422e-4d97-9442-cf2a13d31016",
+      "event_type": "document.accepted_with_observations",
+      "document_id": 1,
+      "state_version": 4,
+      "hmac_valid": true
+    },
+    {
+      "event_id": "0bb97237-a118-43a2-85d1-0680a7e278be",
+      "event_type": "document.rejected",
+      "document_id": 2,
+      "state_version": 4,
+      "hmac_valid": true
+    },
+    {
+      "event_id": "b90f3154-49c0-4577-bd5f-043ca907f86d",
+      "event_type": "document.accepted_with_observations",
+      "document_id": 3,
+      "state_version": 4,
+      "hmac_valid": true
+    },
+    {
+      "event_id": "161ec5c2-690f-4f89-b5d0-a54f37f5beaa",
+      "event_type": "document.accepted_with_observations",
+      "document_id": 4,
+      "state_version": 4,
+      "hmac_valid": true
+    },
+    {
+      "event_id": "ace27ee4-7faa-4a37-aa3d-5e5da8f4e015",
+      "event_type": "document.accepted_with_observations",
+      "document_id": 5,
+      "state_version": 4,
+      "hmac_valid": true
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441073/20161515648-09-T001-441073.pdf",
+      "bytes": 21328,
+      "sha256": "ce5db2a8a315cc0db2d3978f89738b957c612130dfbdd6a6694a6d9b1715ee74"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441073/20161515648-09-T001-441073.xml",
+      "bytes": 6380,
+      "sha256": "a6a5ea8f6585cbcfee058c01e774596a510e2f3c011dfebc11e4bb9616e8d101"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441073/20161515648-09-T001-441073.zip",
+      "bytes": 2661,
+      "sha256": "46e02f58245742c55912aaf79b77d0245975ae70ba8e5b9f6861046b3c4cd0f5"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441073/R-20161515648-09-T001-441073.zip",
+      "bytes": 1140,
+      "sha256": "cae4f0d2dbc0e4bc678fe3ff70353b0e85493191d537c1dde2db29ae2e25213c"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441074/20161515648-09-T001-441074.pdf",
+      "bytes": 21326,
+      "sha256": "3be7180960ab339e9ef539e21e612626702713d928522414e74c2b9ebbb7bcdb"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441074/20161515648-09-T001-441074.xml",
+      "bytes": 6380,
+      "sha256": "78e319fbfabd33329376ddefec3ae247595a56f05f88b8355815078f09b3a819"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441074/20161515648-09-T001-441074.zip",
+      "bytes": 2662,
+      "sha256": "fbff9243022ec18d45032a0f954b06118609503c66d6a45702609c8e0a9da6a5"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441074/R-20161515648-09-T001-441074.zip",
+      "bytes": 1140,
+      "sha256": "1d4aa8974cbdcb517aa304fbc2135c6bb52020b234416865feed195fb271794f"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647063/20161515648-31-V001-647063.xml",
+      "bytes": 7077,
+      "sha256": "df68a289d696b4ae2911dfc10e53cf24f8b30ed86bd57c32e9e9df36c210e922"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647063/20161515648-31-V001-647063.zip",
+      "bytes": 2720,
+      "sha256": "ac47d15b52e2e1b96043135ab0ca2af5605d495f2c9bd280335c758acd5b0f03"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647064/20161515648-31-V001-647064.pdf",
+      "bytes": 22484,
+      "sha256": "8850547e964cf111c36ed50174008b450026a10f99bc7b56d96925a4a3c64b11"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647064/20161515648-31-V001-647064.xml",
+      "bytes": 7751,
+      "sha256": "d965e553b0a5523cf8e235392f4d54bcb6600b70ff4aee92ff69e234f7482fae"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647064/20161515648-31-V001-647064.zip",
+      "bytes": 2895,
+      "sha256": "f32c0a60d42c59f61599c71d4ad264c08ebccf5f7bba883502cad85cc92bb798"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647064/R-20161515648-31-V001-647064.zip",
+      "bytes": 1142,
+      "sha256": "4d9d5eb2c12fe0bcc273836eedecd4c80221afe64d130b7c225fff3e5afff9db"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647065/20161515648-31-V001-647065.pdf",
+      "bytes": 22482,
+      "sha256": "517f7a675585a0ccc70976a813d73c1c852ce170fdd19d80b9f11491dbb4831d"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647065/20161515648-31-V001-647065.xml",
+      "bytes": 7751,
+      "sha256": "828bbc4b05079731a823afed2aecb9f9870955a7ad847f4c3808fdd7c14ff8ec"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647065/20161515648-31-V001-647065.zip",
+      "bytes": 2889,
+      "sha256": "dc2812c93e206366ae573f920b04660b608e6a4b17c8bf577e1de1f7ba314726"
+    },
+    {
+      "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647065/R-20161515648-31-V001-647065.zip",
+      "bytes": 1140,
+      "sha256": "2f62dde885809971d275071e34d574b81bde5de1f2efbd98fb8612775c00d9b1"
+    }
+  ],
+  "suite": {
+    "passed": 243,
+    "assertions": 899,
+    "skipped": 0
+  },
+  "restoration": {
+    "database": "novafact_gre_restore_check",
+    "documents": 5,
+    "deliveries": 5,
+    "queued_jobs": 0
+  }
+}

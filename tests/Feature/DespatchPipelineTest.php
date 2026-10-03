@@ -71,7 +71,8 @@ it('generates structurally distinct signed UBL 2.1 XML and a GRE PDF through ins
             ->and($xp->evaluate('string(//cac:Shipment/cbc:GrossWeightMeasure)'))->toBe('125.375')
             ->and($xp->query('//cac:DespatchLine'))->toHaveCount(1)
             ->and($xp->query('//ds:Signature'))->toHaveCount(1);
-        if($type==='31') expect($xp->evaluate('string(//cac:SellerSupplierParty//cbc:ID)'))->toBe('20333333331');
+        if($type==='31') expect($xp->evaluate('string(//cac:Shipment/cac:Delivery/cac:Despatch/cac:DespatchParty/cac:PartyIdentification/cbc:ID)'))->toBe('20333333331')
+            ->and($xp->query('//cac:SellerSupplierParty'))->toHaveCount(0);
         expect(substr(app(DespatchPdfService::class)->render($model),0,4))->toBe('%PDF');
     } finally { @unlink(storage_path('app/certificates/'.$file)); }
 })->with(['09','31']);
@@ -145,3 +146,25 @@ function greCdrZip(string $code,string $description): string {
     $xml='<?xml version="1.0"?><ApplicationResponse xmlns="urn:oasis:names:specification:ubl:schema:xsd:ApplicationResponse-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"><cbc:ResponseCode>'.$code.'</cbc:ResponseCode><cbc:Description>'.$description.'</cbc:Description></ApplicationResponse>';
     $tmp=tempnam(sys_get_temp_dir(),'cdr'); $z=new ZipArchive; $z->open($tmp,ZipArchive::CREATE|ZipArchive::OVERWRITE); $z->addFromString('R-demo.xml',$xml); $z->close(); $bytes=file_get_contents($tmp); unlink($tmp); return $bytes;
 }
+
+it('exposes the fiscal rejection code and description through the scoped submission API', function () {
+    $op = admittedAwaitingGre();
+    $transport = Mockery::mock(GreTransport::class);
+    $transport->shouldReceive('poll')->once()->andReturn(new GrePollResult('99', null, '3383', 'Debe consignar el remitente'));
+    (new PollSunatSubmissionJob($op->submissionId))->handle($transport, app(\App\Services\Sunat\GreCdrParser::class), app(DocumentLifecycle::class));
+    $this->withToken('test-token')->getJson('/api/facturacion/submissions/'.$op->submissionId)
+        ->assertOk()->assertJsonPath('sunat_code', '3383')->assertJsonPath('sunat_description', 'Debe consignar el remitente');
+    expect(DB::table('McrSunatSubmission')->where('McrSunatSubmissionID', $op->submissionId)->value('McrFailureCategory'))->toBe('remote_rejected');
+});
+
+it('prints the configured company PNG logo on both GRE types without sharing beta logos with production', function (string $type) {
+    $company = \App\Models\Empresa::firstOrFail();
+    Storage::disk('local')->put('facturacion/logo/company-1-logo.png', file_get_contents(public_path('logo-nova.png')));
+    $company->update(['McrLogoPath' => 'facturacion/logo/company-1-logo.png']);
+    $normalizer = app(\App\Services\Documents\DespatchPayloadNormalizer::class);
+    $payload = $normalizer->processing($normalizer->request(despatchPayload($type)), $type === '09' ? 'T001' : 'V001', 1);
+    $model = app(DespatchService::class)->map($company, \App\DTO\DespatchData::fromArray($payload));
+    expect(app(DespatchPdfService::class)->render($model))->toContain('/Width 600');
+    config(['sunat.production' => true]);
+    expect(app(DespatchPdfService::class)->render($model))->not->toContain('/Width 600');
+})->with(['09', '31']);
