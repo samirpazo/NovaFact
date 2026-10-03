@@ -44,8 +44,8 @@
   "artifacts": [
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441073/20161515648-09-T001-441073.pdf",
-      "bytes": 42864,
-      "sha256": "7e6e29ef7fa0f177e967f8fa51c11c2ca370fbb8359e95c9b198da0852942123"
+      "bytes": 42858,
+      "sha256": "5613653fe58c7311952f152d4f57b15f5839518d9230eb6578863d25e8a4cdfc"
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441073/20161515648-09-T001-441073.xml",
@@ -64,8 +64,8 @@
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441074/20161515648-09-T001-441074.pdf",
-      "bytes": 42698,
-      "sha256": "10a28ba43d74dd61be34a0ac22bf48811c517e6c1a411c251bef9d869cd0e226"
+      "bytes": 42691,
+      "sha256": "553aa77bdb573583e04f27b3add32d3f4be6ab77cc89221df08b9073576a795b"
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441074/20161515648-09-T001-441074.xml",
@@ -94,8 +94,8 @@
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647064/20161515648-31-V001-647064.pdf",
-      "bytes": 44038,
-      "sha256": "37583cac98d2d1dd69dfda70a9f3c21b36795c543bdab6de5a6b2c54e244854f"
+      "bytes": 44037,
+      "sha256": "4749207b1f4067b8a1939e09de2f916432e7e8d882f8d31d276fd696570587fb"
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647064/20161515648-31-V001-647064.xml",
@@ -114,8 +114,8 @@
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647065/20161515648-31-V001-647065.pdf",
-      "bytes": 44036,
-      "sha256": "8ff5c688ce6264749fdf532906e2ed43ebb745fd62e8386a3885a10d87c74b9f"
+      "bytes": 44035,
+      "sha256": "c0610cc25e9f98c72bf9413d4f425446c2379f3aac02e0fba035efc46e8faa1c"
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647065/20161515648-31-V001-647065.xml",
