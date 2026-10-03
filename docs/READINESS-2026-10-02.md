@@ -99,6 +99,25 @@ despliegue, consultar [la guía de producción](PRODUCCION.md).
 
 ## Pendientes y límites
 
+### OSE pendiente
+
+NovaFact mantiene el envío directo a SUNAT; OSE todavía no está implementado.
+Confirmar su obligatoriedad antes de activar cada empresa. Las empresas cuyo sistema
+permita envío directo pueden continuar con la preparación para producción descrita
+en este informe; las que requieran OSE deben completar esa integración primero.
+
+La futura selección SUNAT/OSE será por empresa, con credenciales propias, envío,
+consulta de tickets/CDR y recuperación. Antes de implementarla, elegir el proveedor,
+obtener documentación, endpoints, credenciales y acceso a homologación, y confirmar
+las operaciones cubiertas. GRE conservará su transporte actual salvo requisito comprobado.
+
+Las pruebas futuras cubrirán aislamiento entre empresas con SUNAT y OSE, comprobantes,
+notas, bajas y resúmenes, aceptación/rechazo, tickets, timeouts y recuperación sin
+duplicados. No basta cambiar la URL global. Ver requisitos y criterios de habilitación
+en [OSE pendiente de la guía de producción](PRODUCCION.md#ose-pendiente).
+
+### Otros pendientes y límites
+
 1. **GRE demo completado:** ambos tipos aceptados por gre-test.nubefact.com; no equivale
    a aceptación GRE productiva de SUNAT. Falta validar con credenciales propias,
    certificado válido y las variantes reales de traslado antes de producción.

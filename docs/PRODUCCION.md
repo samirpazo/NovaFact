@@ -32,6 +32,32 @@ SOL, OAuth GRE y el token NovaFact son credenciales distintas. El usuario SOL se
 almacena sin concatenar el RUC; los adaptadores forman `RUC + usuario` para SUNAT.
 MODDATOS, RUC demo y credenciales con prefijo `test-` se reservan para pruebas.
 
+### OSE pendiente
+
+La integración OSE no está implementada. Por ahora se mantiene el envío directo a
+SUNAT. Antes de activar cada empresa, confirmar con su responsable tributario si
+su sistema de emisión permite ese envío o requiere un OSE. Una empresa que requiere
+OSE no debe emitir mediante el transporte directo actual hasta completar esa integración.
+
+Antes de implementarla, elegir el OSE y obtener su documentación técnica, credenciales,
+endpoints y acceso a homologación. Confirmar con el proveedor qué comprobantes,
+notas, bajas y resúmenes cubre, cómo autentica, cómo entrega el CDR y qué consultas
+permite para tickets y resultados ambiguos.
+
+La futura selección SUNAT/OSE será **por empresa**, con configuración y credenciales
+propias. Incluirá envío, consulta de tickets/CDR y recuperación, reutilizando el
+pipeline de cola, idempotencia y conservación de artefactos. Cambiar únicamente la
+URL SOAP global no implementa soporte OSE y afectaría a las demás empresas.
+Las guías GRE conservarán su transporte actual salvo un requisito comprobado que
+justifique otro flujo.
+
+La homologación deberá cubrir una empresa con envío directo y otra con OSE, sin
+cruce de credenciales, documentos, tickets ni archivos. Probar comprobantes, notas,
+bajas y resúmenes; aceptación, observaciones y rechazo; polling de tickets, timeouts,
+reinicios y recuperación sin duplicar envíos. Habilitar OSE solo para las empresas
+configuradas cuando esas pruebas y la evidencia del proveedor estén completas.
+Esta decisión no añade configuración OSE ni modifica el funcionamiento actual.
+
 ### Dónde obtener el certificado
 
 Si corresponde al contribuyente, solicitar el Certificado Digital Tributario en SOL:

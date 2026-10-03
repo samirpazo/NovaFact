@@ -40,6 +40,8 @@ class GreenterService
         $this->see->setCertificate($cert);
 
         $this->see->setClaveSOL($empresa->CpyRuc, $empresa->CpyUserSol, $empresa->CpyPasswordSol);
+        // OSE is not implemented: a global URL change is insufficient. Future routing,
+        // credentials and CDR recovery must be per company; see docs/PRODUCCION.md#ose-pendiente.
         $this->see->setService(config('sunat.endpoints.soap'));
     }
 
