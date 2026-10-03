@@ -44,8 +44,8 @@
   "artifacts": [
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441073/20161515648-09-T001-441073.pdf",
-      "bytes": 21328,
-      "sha256": "ce5db2a8a315cc0db2d3978f89738b957c612130dfbdd6a6694a6d9b1715ee74"
+      "bytes": 42783,
+      "sha256": "04c2b7d3ad559458be5643512b2f505fd5f74491cdd5fa30dd6dfc60afd593f2"
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441073/20161515648-09-T001-441073.xml",
@@ -64,8 +64,8 @@
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441074/20161515648-09-T001-441074.pdf",
-      "bytes": 21326,
-      "sha256": "3be7180960ab339e9ef539e21e612626702713d928522414e74c2b9ebbb7bcdb"
+      "bytes": 42617,
+      "sha256": "dd73a869a22898f1d1303d8e8e0319878d6cb519172181e8459632a6abb98f65"
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/09/T001/441074/20161515648-09-T001-441074.xml",
@@ -94,8 +94,8 @@
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647064/20161515648-31-V001-647064.pdf",
-      "bytes": 22484,
-      "sha256": "8850547e964cf111c36ed50174008b450026a10f99bc7b56d96925a4a3c64b11"
+      "bytes": 43947,
+      "sha256": "047f83b856c103dd9060b9e4beab87d2b332dd7aace6f2aa7c21a7b7e4c3104d"
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647064/20161515648-31-V001-647064.xml",
@@ -114,8 +114,8 @@
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647065/20161515648-31-V001-647065.pdf",
-      "bytes": 22482,
-      "sha256": "517f7a675585a0ccc70976a813d73c1c852ce170fdd19d80b9f11491dbb4831d"
+      "bytes": 43946,
+      "sha256": "2735d44f929733612d018952cea3a64ccbdbc6f0afbe631597866a2558fa6d4f"
     },
     {
       "path": "storage/app/private/readiness/2026-10-02/gre/facturacion/1/31/V001/647065/20161515648-31-V001-647065.xml",
@@ -143,5 +143,6 @@
     "documents": 5,
     "deliveries": 5,
     "queued_jobs": 0
-  }
+  },
+  "pdf_presentation_updated": "Shared invoice/receipt typography, header, borders and tables; fiscal XML/ZIP/CDR unchanged"
 }

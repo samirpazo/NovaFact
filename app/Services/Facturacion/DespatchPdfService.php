@@ -17,7 +17,8 @@ class DespatchPdfService
             ->where('McrEnvironment', config('sunat.production') ? 'production' : 'beta')->first();
         $logo = $company?->McrLogoPath && Storage::disk('local')->exists($company->McrLogoPath)
             ? Storage::disk('local')->get($company->McrLogoPath) : null;
-        $system = ['logo' => $logo ?? base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLzWQAAAABJRU5ErkJggg==')];
+        $system = ['logo' => $logo, 'logo_mime' => $logo
+            ? str_replace('image/', '', (new \finfo(FILEINFO_MIME_TYPE))->buffer($logo)) : 'png'];
         if ($qrUrl !== null && filter_var($qrUrl, FILTER_VALIDATE_URL)
             && in_array(strtolower((string) parse_url($qrUrl, PHP_URL_SCHEME)), ['http', 'https'], true)) {
             $system['qr'] = $qrUrl;

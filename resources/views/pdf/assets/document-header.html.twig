@@ -1,0 +1,36 @@
+<table class="header-table">
+    <tr>
+        <td class="logo-cell">
+            <table border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                    {% if params.system.logo %}
+                    <td style="padding-right: 10px; vertical-align: middle; width: 70px; text-align: center;">
+                        <img src="{{ params.system.logo|image_b64(params.system.logo_mime|default('png')) }}" style="max-height: 70px; max-width: 70px;" border="0">
+                    </td>
+                    {% endif %}
+                    <td style="vertical-align: middle;">
+                        <div class="company-name">{{ cp.razonSocial }}</div>
+                        {% if cp.address and cp.address.direccion %}
+                            <div class="company-info"><strong>Dir.:</strong> {{ cp.address.direccion }}{% if cp.address.urbanizacion %}, {{ cp.address.urbanizacion }}{% endif %}{% if cp.address.distrito %}, {{ cp.address.distrito }}{% endif %}{% if cp.address.provincia %}, {{ cp.address.provincia }}{% endif %}{% if cp.address.departamento %}, {{ cp.address.departamento }}{% endif %}</div>
+                        {% endif %}
+                        {% if cp.telephone or cp.email %}
+                            <div class="company-info">
+                                {% if cp.telephone %}<strong>Telf.:</strong> {{ cp.telephone }}{% endif %}
+                                {% if cp.telephone and cp.email %} | {% endif %}
+                                {% if cp.email %}<strong>Email:</strong> {{ cp.email }}{% endif %}
+                            </div>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </td>
+        <td class="ruc-cell">
+            <div class="ruc-box">
+                <div class="ruc-title">R.U.C. N° {{ cp.ruc }}</div>
+                <div class="doc-name">{{ name }}</div>
+                <div class="doc-number">{{ doc.serie }}-{{ "%08d"|format(doc.correlativo) }}</div>
+            </div>
+        </td>
+    </tr>
+</table>
+
